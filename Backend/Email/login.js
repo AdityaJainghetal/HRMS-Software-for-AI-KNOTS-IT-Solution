@@ -2,7 +2,7 @@ export default function getLoginMailOptions(email, name) {
   return {
     from: process.env.EMAIL,
     to: email,
-    subject: "AtlaKnots HR-System Login Notification",
+    subject: "AI Knots HR-System Login Notification",
     html: `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -27,7 +27,7 @@ export default function getLoginMailOptions(email, name) {
       <p>Your account was just accessed. If this was not you, please reset your password immediately.</p>
     </div>
     <div class="footer">
-      &copy; 2026 AtlaKnots HR System. All rights reserved.
+      &copy; 2026 AI Knots HR System. All rights reserved.
     </div>
   </div>
 </body>

@@ -2,7 +2,7 @@ export default function getPasswordChangeConfirmationMailOptions(email, name) {
   return {
     from: process.env.EMAIL,
     to: email,
-    subject: "AtlaKnots HR-System Password Change Confirmation",
+    subject: "AI Knots HR-System Password Change Confirmation",
     html: `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -27,7 +27,7 @@ export default function getPasswordChangeConfirmationMailOptions(email, name) {
       <p>Your password has been successfully changed. If you did not initiate this change, please contact support immediately.</p>
     </div>
     <div class="footer">
-      &copy; 2025 AtlaKnots HR System. All rights reserved.
+      &copy; 2025 AI Knots HR System. All rights reserved.
     </div>
   </div>
 </body>

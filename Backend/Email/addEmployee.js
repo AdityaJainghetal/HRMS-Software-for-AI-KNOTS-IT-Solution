@@ -9,12 +9,12 @@ export default function getAddEmployeeMailOptions(
   return {
     from: process.env.EMAIL,
     to: email,
-    subject: "Welcome to AtlaKnots HR System - Your Account Details",
+    subject: "Welcome to AI Knots HR System - Your Account Details",
     html: `<!DOCTYPE html>
 			<html lang="en">
 			<head>
 				<meta charset="UTF-8">
-				<title>Welcome to AtlaKnots HR System</title>
+				<title>Welcome to AI Knots HR System</title>
 				<style>
 					body { font-family: Arial, sans-serif; background: #f6f8fa; margin: 0; padding: 0; }
 					.container { max-width: 520px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 32px; }
@@ -28,11 +28,11 @@ export default function getAddEmployeeMailOptions(
 			<body>
 				<div class="container">
 					<div class="header">
-						<div class="title">Welcome to AtlaKnots HR System!</div>
+						<div class="title">Welcome to AI Knots HR System!</div>
 					</div>
 					<div class="content">
 						<p>Hi <strong>${name}</strong>,</p>
-						<p>You have been added to the AtlaKnots HR System as a new employee. Below are your account details:</p>
+						<p>You have been added to the AI Knots HR System as a new employee. Below are your account details:</p>
 						<div class="details">
 							<p><strong>Email:</strong> ${email}</p>
 							<p><strong>Position:</strong> ${position}</p>
