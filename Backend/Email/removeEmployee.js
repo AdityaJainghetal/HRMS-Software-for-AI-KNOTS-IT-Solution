@@ -26,7 +26,7 @@ export default function getRemoveEmployeeMailOptions(
       <body>
         <div class="container">
           <div class="header">
-            <img src="http://localhost:8000/assets/download.jpg" alt="GammoDA Logo" class="logo" />
+            <img src="https://hrms-software-for-ai-knots-it-solution.onrender.com/assets/download.jpg" alt="GammoDA Logo" class="logo" />
             <div class="title">Account Removal Notification</div>
           </div>
           <div class="content">
