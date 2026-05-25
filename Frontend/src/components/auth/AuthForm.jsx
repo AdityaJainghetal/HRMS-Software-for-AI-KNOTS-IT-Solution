@@ -30,7 +30,7 @@ import {
   ArrowLeft,
   CheckCircle,
 } from "lucide-react";
-import logo from "../../assets/download.jpg";
+import logo from "../../assets/download.png";
 import { toast } from "react-toastify";
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -202,11 +202,11 @@ export const AuthForm = () => {
             {/* <Building2 className="w-8 h-8 text-primary" /> */}
             <img
               src={logo}
-              alt="AtlaKnots Logo"
+              alt="AI KNOTS Logo"
               className="w-16 h-16 object-cover"
             />
           </div>
-          <h1 className="text-2xl font-bold text-black dark:text-white mb-2">AtlaKnots IT Soultion</h1>
+          <h1 className="text-2xl font-bold text-black dark:text-white mb-2">AI KNOTS IT Solutions</h1>
           <p className="text-blue-100">Human Resource Management System</p>
         </div>
         <Card className="shadow-2xl border-0" style={{ marginTop: 15 }}>
