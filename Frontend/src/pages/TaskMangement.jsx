@@ -90,6 +90,17 @@ const TaskManagement = () => {
     priority: "medium",
   });
 
+
+  const marginStyle = {
+    marginBottom: "10px"
+  };
+
+  const button = {
+    width: "200px"
+  };
+
+
+
   // Fetch Tasks and Employees
   useEffect(() => {
     const fetchData = async () => {
@@ -317,8 +328,14 @@ const TaskManagement = () => {
             if (!open) resetNewTask();
           }}
         >
-          <DialogTrigger asChild>
+          {/* <DialogTrigger asChild>
             <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              Create New Task
+            </Button>
+          </DialogTrigger> */}
+            <DialogTrigger asChild style={{ ...marginStyle, ...button }}>
+            <Button className="btn-gradient">
               <Plus className="w-4 h-4 mr-2" />
               Create New Task
             </Button>

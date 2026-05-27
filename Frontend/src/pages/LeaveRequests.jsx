@@ -3728,11 +3728,38 @@ const LeaveRequests = () => {
   const statusOptions = ["all", "pending", "approved", "rejected"];
   const maxSickPersonal = 2;
 
+  const getCurrentQuarterRange = (date = new Date()) => {
+    const month = date.getMonth();
+    const year = date.getFullYear();
+    const fiscalQuarterStart = 3; // April
+    const adjusted = (month - fiscalQuarterStart + 12) % 12;
+    const quarterIndex = Math.floor(adjusted / 3);
+    const startMonth = (fiscalQuarterStart + quarterIndex * 3) % 12;
+    const startYear = month >= fiscalQuarterStart ? year : year - 1;
+    const quarterStart = new Date(startYear, startMonth, 1);
+    const quarterEnd = new Date(startYear, startMonth + 3, 0, 23, 59, 59, 999);
+    return { quarterStart, quarterEnd };
+  };
+
+  const isWithinCurrentQuarter = (dateValue) => {
+    if (!dateValue) return false;
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return false;
+    const { quarterStart, quarterEnd } = getCurrentQuarterRange();
+    return date >= quarterStart && date <= quarterEnd;
+  };
+
   const sickUsed = leaveRequests.filter(
-    (r) => r.leaveType === "Sick Leave" && r.status === "approved",
+    (r) =>
+      r.leaveType === "Sick Leave" &&
+      r.status === "approved" &&
+      isWithinCurrentQuarter(r.startDate),
   ).length;
   const personalUsed = leaveRequests.filter(
-    (r) => r.leaveType === "Personal Leave" && r.status === "approved",
+    (r) =>
+      r.leaveType === "Personal Leave" &&
+      r.status === "approved" &&
+      isWithinCurrentQuarter(r.startDate),
   ).length;
 
   const leaveTypeOptions = [

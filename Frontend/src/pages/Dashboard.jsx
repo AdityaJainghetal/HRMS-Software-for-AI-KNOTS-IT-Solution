@@ -783,8 +783,8 @@ const Dashboard = () => {
           <StatCard
             style={statCardStyle}
             title="Current Salary"
-            value={currentSalary !== null ? `$${Number(currentSalary).toLocaleString()}` : '--'}
-            icon={DollarSign}
+            value={currentSalary !== null ? `₹${Number(currentSalary).toLocaleString()}` : '--'}
+            icon={IndianRupee}
           />
         </div>
         <div style={statCardsContainerStyle} className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]">

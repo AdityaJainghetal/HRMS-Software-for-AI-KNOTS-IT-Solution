@@ -1600,6 +1600,8 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 const API_URL = import.meta.env.VITE_API_URL;
 
+
+
 const Employees = () => {
   const { isHR } = useAuth();
 
@@ -1624,6 +1626,15 @@ const Employees = () => {
     () => departments.map((d) => d.name),
     [departments],
   );
+
+    const marginStyle = {
+    marginBottom: "10px"
+  };
+
+  const button = {
+    width: "200px"
+  };
+
 
   const API_BASE = API_URL;
   const token =
@@ -1932,8 +1943,15 @@ const Employees = () => {
         </div>
 
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-          <DialogTrigger asChild>
+          {/* <DialogTrigger asChild>
             <Button className="btn-gradient w-min">
+              <UserPlus className="w-4 h-4 mr-2" />
+              Add Employee
+            </Button>
+          </DialogTrigger> */}
+
+          <DialogTrigger asChild style={{ ...marginStyle, ...button }}>
+            <Button className="btn-gradient">
               <UserPlus className="w-4 h-4 mr-2" />
               Add Employee
             </Button>

@@ -101,31 +101,99 @@ const Profile = () => {
   });
 
   const [profileImage, setProfileImage] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const resumeInputRef = useRef(null);
 
+  // Validation helper
+  const validateProfileData = () => {
+    if (!profileData.name?.trim()) {
+      toast.error("Full name is required");
+      return false;
+    }
+    if (profileData.name.trim().length < 2) {
+      toast.error("Full name must be at least 2 characters");
+      return false;
+    }
+    if (!profileData.email?.trim()) {
+      toast.error("Email is required");
+      return false;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(profileData.email)) {
+      toast.error("Please enter a valid email address");
+      return false;
+    }
+    if (
+      profileData.phone &&
+      !/^[0-9\s\-\+\(\)]{10,}$/.test(profileData.phone.replace(/\s/g, ""))
+    ) {
+      toast.warning("Phone number format may be invalid");
+    }
+    if (
+      profileData.dateOfBirth &&
+      new Date(profileData.dateOfBirth) > new Date()
+    ) {
+      toast.error("Date of birth cannot be in the future");
+      return false;
+    }
+    return true;
+  };
+
   const handleProfileUpdate = async () => {
+    if (!validateProfileData()) {
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
+      toast.info("Updating profile...");
       await updateProfile(profileData);
       setIsEditing(false);
       toast.success("Profile updated successfully!");
     } catch (error) {
-      toast.error("Failed to update profile");
+      console.error("Profile update error:", error);
+      const errorMsg =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to update profile";
+      toast.error(errorMsg);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const { changePassword } = useAuth();
 
   const handlePasswordChange = async () => {
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error("New passwords do not match");
+    // Validation
+    if (!passwordData.currentPassword) {
+      toast.error("Current password is required");
+      return;
+    }
+    if (!passwordData.newPassword) {
+      toast.error("New password is required");
+      return;
+    }
+    if (!passwordData.confirmPassword) {
+      toast.error("Please confirm your new password");
       return;
     }
     if (passwordData.newPassword.length < 6) {
       toast.error("Password must be at least 6 characters");
       return;
     }
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error("New passwords do not match");
+      return;
+    }
+    if (passwordData.currentPassword === passwordData.newPassword) {
+      toast.warning("New password should be different from current password");
+      return;
+    }
 
+    setIsSubmitting(true);
     try {
+      toast.info("Changing password...");
       await changePassword(
         passwordData.currentPassword,
         passwordData.newPassword,
@@ -136,68 +204,112 @@ const Profile = () => {
         newPassword: "",
         confirmPassword: "",
       });
+      toast.success("Password changed successfully!");
     } catch (err) {
       console.error("Password change failed:", err);
+      const errorMsg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to change password";
+      toast.error(errorMsg);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleResumeUpload = (event) => {
     const file = event.target.files[0];
-    if (file) {
-      if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          // Create a file info object to store
-          const fileInfo = {
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            lastModified: file.lastModified,
-            uploadDate: new Date().toISOString(),
-            data: e.target.result, // Store file as base64
-          };
-
-          // Store file info in localStorage
-          localStorage.setItem("userResume", JSON.stringify(fileInfo));
-
-          setResumeFile(fileInfo);
-          toast.success("Resume uploaded successfully!");
-        };
-        reader.readAsDataURL(file);
-      } else {
-        toast.error("Please upload a PDF file");
-      }
+    if (!file) {
+      toast.warning("No file selected");
+      return;
     }
+
+    // File type validation
+    if (file.type !== "application/pdf" && !file.name.endsWith(".pdf")) {
+      toast.error("Only PDF files are allowed");
+      return;
+    }
+
+    // File size validation (max 10MB)
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error("File size must be less than 10MB");
+      return;
+    }
+
+    toast.info("Uploading resume...");
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        // Create a file info object to store
+        const fileInfo = {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          lastModified: file.lastModified,
+          uploadDate: new Date().toISOString(),
+          data: e.target.result, // Store file as base64
+        };
+
+        // Store file info in localStorage
+        localStorage.setItem("userResume", JSON.stringify(fileInfo));
+
+        setResumeFile(fileInfo);
+        toast.success(`Resume "${file.name}" uploaded successfully!`);
+      } catch (err) {
+        console.error("Resume upload error:", err);
+        toast.error("Failed to process resume");
+      }
+    };
+    reader.onerror = () => {
+      toast.error("Failed to read file");
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleViewResume = () => {
     if (!resumeFile) {
-      toast.error("No resume uploaded");
+      toast.error("No resume uploaded. Please upload a resume first.");
       return;
     }
 
-    // Open the PDF in a new tab
-    const pdfWindow = window.open();
-    pdfWindow.document.write(`
-      <iframe width="100%" height="100%" src="${resumeFile.data}" frameborder="0"></iframe>
-    `);
+    try {
+      // Open the PDF in a new tab
+      const pdfWindow = window.open();
+      if (pdfWindow) {
+        pdfWindow.document.write(`
+          <iframe width="100%" height="100%" src="${resumeFile.data}" frameborder="0"></iframe>
+        `);
+        toast.success("Resume opened in new tab");
+      } else {
+        toast.error("Failed to open PDF. Please check your popup blocker.");
+      }
+    } catch (err) {
+      console.error("View resume error:", err);
+      toast.error("Failed to open resume");
+    }
   };
 
   const handleDownloadResume = () => {
     if (!resumeFile) {
-      toast.error("No resume uploaded");
+      toast.error("No resume uploaded. Please upload a resume first.");
       return;
     }
 
-    // Create a download link
-    const downloadLink = document.createElement("a");
-    downloadLink.href = resumeFile.data;
-    downloadLink.download = resumeFile.name;
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
+    try {
+      // Create a download link
+      const downloadLink = document.createElement("a");
+      downloadLink.href = resumeFile.data;
+      downloadLink.download = resumeFile.name;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
 
-    toast.success("Resume downloaded successfully!");
+      toast.success(`Resume "${resumeFile.name}" downloaded successfully!`);
+    } catch (err) {
+      console.error("Download resume error:", err);
+      toast.error("Failed to download resume");
+    }
   };
 
   const { uploadProfileImage, user: currentUser } = useAuth();
@@ -244,10 +356,21 @@ const Profile = () => {
 
   const handleProfileImageUpload = async (event) => {
     const file = event.target.files[0];
-    if (!file) return;
+    if (!file) {
+      toast.warning("No file selected");
+      return;
+    }
 
+    // Validation
     if (!file.type.startsWith("image/")) {
-      toast.error("Please upload an image file");
+      toast.error("Please upload an image file (JPG, PNG, etc.)");
+      return;
+    }
+
+    // File size validation (max 5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error("Image size must be less than 5MB");
       return;
     }
 
@@ -266,13 +389,15 @@ const Profile = () => {
       // If backend returned mapped user data with avatar, use that (persisted URL)
       if (uploaded && uploaded.avatar) {
         setProfileImage(uploaded.avatar);
-        toast.success("Profile picture uploaded");
+        toast.success("Profile picture uploaded successfully!");
       } else {
-        toast.success("Profile picture updated (preview only)");
+        toast.success("Profile picture updated");
       }
     } catch (err) {
       console.error("Failed to upload profile image", err);
-      toast.error("Failed to upload profile image");
+      const errorMsg =
+        err?.response?.data?.message || "Failed to upload profile image";
+      toast.error(errorMsg);
     }
   };
 
@@ -528,7 +653,6 @@ const Profile = () => {
                       disabled={!isEditing}
                     />
                   </div>
-                 
                 </div>
 
                 <Separator />
@@ -575,6 +699,7 @@ const Profile = () => {
                       style={buttonStyle}
                       variant="outline"
                       onClick={() => setIsEditing(false)}
+                      disabled={isSubmitting}
                     >
                       Cancel
                     </Button>
@@ -582,9 +707,10 @@ const Profile = () => {
                       style={buttonStyle}
                       onClick={handleProfileUpdate}
                       className="btn-gradient"
+                      disabled={isSubmitting}
                     >
                       <Save className="w-4 h-4 mr-2" />
-                      Save Changes
+                      {isSubmitting ? "Saving..." : "Save Changes"}
                     </Button>
                   </div>
                 )}
@@ -644,9 +770,13 @@ const Profile = () => {
                     }
                   />
                 </div>
-                <Button onClick={handlePasswordChange} className="btn-gradient">
+                <Button
+                  onClick={handlePasswordChange}
+                  className="btn-gradient"
+                  disabled={isSubmitting}
+                >
                   <Lock className="w-4 h-4 mr-2" />
-                  Change Password
+                  {isSubmitting ? "Changing Password..." : "Change Password"}
                 </Button>
               </CardContent>
             </Card>
