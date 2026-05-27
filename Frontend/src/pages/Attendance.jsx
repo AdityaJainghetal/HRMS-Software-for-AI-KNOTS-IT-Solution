@@ -58,7 +58,7 @@ const Attendance = () => {
 
     try {
       const res = await axios.post(
-        "https://hrms-software-for-ai-knots-it-solution.onrender.com/api/attendance/upload-attendance",
+        "https://hrms-software-for-ai-knots-it-solution-1.onrender.com/api/attendance/upload-attendance",
         formData,
         { headers: { Authorization: `Bearer ${token}` } },
       );
@@ -90,7 +90,7 @@ const Attendance = () => {
 
     try {
       const res = await axios.get(
-        "https://hrms-software-for-ai-knots-it-solution.onrender.com/api/employees",
+        "https://hrms-software-for-ai-knots-it-solution-1.onrender.com/api/employees",
         config,
       );
       setEmployees(res.data?.data || []);
@@ -119,7 +119,7 @@ const Attendance = () => {
         if (selectedDate) params.date = selectedDate;
 
         res = await axios.get(
-          "https://hrms-software-for-ai-knots-it-solution.onrender.com/api/attendance/datefilter",
+          "https://hrms-software-for-ai-knots-it-solution-1.onrender.com/api/attendance/datefilter",
           {
             params,
             ...config,
@@ -127,7 +127,7 @@ const Attendance = () => {
         );
       } else {
         res = await axios.get(
-          "https://hrms-software-for-ai-knots-it-solution.onrender.com/api/attendance/me",
+          "https://hrms-software-for-ai-knots-it-solution-1.onrender.com/api/attendance/me",
           {
             params: { limit: 30 },
             ...config,
