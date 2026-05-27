@@ -778,6 +778,7 @@ const Dashboard = () => {
             icon={UserCheck}
             trend="up"
           />
+          
         </div>
         <div style={statCardsContainerStyle} className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]">
           <StatCard
