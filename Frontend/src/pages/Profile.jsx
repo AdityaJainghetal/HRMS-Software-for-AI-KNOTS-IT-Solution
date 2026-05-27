@@ -61,6 +61,13 @@ const Profile = () => {
     typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
   const [deptName, setDeptName] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+
+  const formatDateValue = (value) => {
+    if (!value) return "";
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? "" : date.toISOString().split("T")[0];
+  };
+
   const getDepartmentName = (dept) => {
     if (!dept) return "";
     // if it's a string that looks like an ObjectId, don't return the raw id
@@ -76,10 +83,10 @@ const Profile = () => {
     email: user?.email || "",
     phone: user?.phone || "",
     address: user?.address || "",
-    dateOfBirth: user?.dateOfBirth || "",
+    dateOfBirth: formatDateValue(user?.dateOfBirth),
     department: getDepartmentName(user?.department),
     position: user?.position || "",
-    joinDate: user?.joinDate || "",
+    joinDate: formatDateValue(user?.joinDate || user?.startDate),
     experience: user?.experience || "",
     college: user?.college || "",
     bio: user?.bio || "",
@@ -346,6 +353,26 @@ const Profile = () => {
     return () => {
       mounted = false;
     };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    setProfileData({
+      name: user.name || "",
+      email: user.email || "",
+      phone: user.phone || "",
+      address: user.address || "",
+      dateOfBirth: formatDateValue(user.dateOfBirth),
+      department: getDepartmentName(user.department),
+      position: user.position || "",
+      joinDate: formatDateValue(user.joinDate || user.startDate),
+      experience: user.experience || "",
+      college: user.college || "",
+      bio: user.bio || "",
+      skills: user.skills || "",
+      emergencyContact: user.emergencyContact || "",
+      emergencyPhone: user.emergencyPhone || "",
+    });
   }, [user]);
 
   // Keep profileData.department in sync with resolved deptName

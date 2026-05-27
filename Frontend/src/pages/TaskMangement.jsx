@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -80,6 +80,8 @@ const TaskManagement = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const prevTasksRef = useRef(new Map());
+  const initialLoadRef = useRef(true);
 
   const [newTask, setNewTask] = useState({
     title: "",
@@ -90,16 +92,38 @@ const TaskManagement = () => {
     priority: "medium",
   });
 
+  useEffect(() => {
+    if (!user) return;
+    if (initialLoadRef.current) {
+      prevTasksRef.current = new Map(
+        tasks.map((task) => [task.id, String(task.assignedTo)]),
+      );
+      initialLoadRef.current = false;
+      return;
+    }
+
+    tasks.forEach((task) => {
+      const previousAssigned = prevTasksRef.current.get(task.id);
+      if (
+        String(task.assignedTo) === String(user._id) &&
+        previousAssigned !== String(task.assignedTo)
+      ) {
+        toast.info(`A new task has been assigned to you: ${task.title}`);
+      }
+    });
+
+    prevTasksRef.current = new Map(
+      tasks.map((task) => [task.id, String(task.assignedTo)]),
+    );
+  }, [tasks, user]);
 
   const marginStyle = {
-    marginBottom: "10px"
+    marginBottom: "10px",
   };
 
   const button = {
-    width: "200px"
+    width: "200px",
   };
-
-
 
   // Fetch Tasks and Employees
   useEffect(() => {
@@ -334,7 +358,7 @@ const TaskManagement = () => {
               Create New Task
             </Button>
           </DialogTrigger> */}
-            <DialogTrigger asChild style={{ ...marginStyle, ...button }}>
+          <DialogTrigger asChild style={{ ...marginStyle, ...button }}>
             <Button className="btn-gradient">
               <Plus className="w-4 h-4 mr-2" />
               Create New Task
@@ -574,7 +598,19 @@ const TaskManagement = () => {
                       {task.priority.toUpperCase()}
                     </Badge>
                   </TableCell>
-                  <TableCell>{task.status.toUpperCase()}</TableCell>
+                  <TableCell>
+                    <Badge
+                      className={
+                        task.status === "completed"
+                          ? "bg-emerald-500 text-white"
+                          : task.status === "inprogress"
+                            ? "bg-blue-500 text-white"
+                            : "bg-slate-200 text-slate-700"
+                      }
+                    >
+                      {task.status.toUpperCase()}
+                    </Badge>
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       {canEditTask(task) && (
@@ -788,7 +824,16 @@ const TaskManagement = () => {
             <Button variant="outline" onClick={() => setEditingTask(null)}>
               Cancel
             </Button>
-            <Button onClick={handleUpdateTask}>Update Task</Button>
+            <Button
+              className={
+                editingTask?.status === "completed"
+                  ? "bg-emerald-500 hover:bg-emerald-600 text-white"
+                  : undefined
+              }
+              onClick={handleUpdateTask}
+            >
+              Update Task
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

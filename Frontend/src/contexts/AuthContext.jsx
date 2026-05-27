@@ -26,9 +26,13 @@ export const AuthProvider = ({ children }) => {
       try {
         const parsed = JSON.parse(userData);
         // normalize avatar/profileImage fields for consistent UI usage
+        const rawJoinDate = parsed.joinDate || parsed.startDate;
         const normalized = {
           ...parsed,
           id: parsed.id || parsed._id || parsed._doc?._id,
+          joinDate: rawJoinDate
+            ? new Date(rawJoinDate).toISOString().split("T")[0]
+            : parsed.joinDate || "",
           avatar:
             parsed.avatar ||
             parsed.profileImage ||
@@ -55,11 +59,15 @@ export const AuthProvider = ({ children }) => {
       if (!data.status) throw new Error(data.message);
 
       localStorage.setItem("authToken", data.data.token);
-      // normalize user before storing so frontend always has `avatar` and `id`
+      // normalize user before storing so frontend always has `avatar`, `id`, and `joinDate`
       const su = data.data.user || {};
+      const rawJoinDate = su.joinDate || su.startDate;
       const normalized = {
         ...su,
         id: su.id || su._id,
+        joinDate: rawJoinDate
+          ? new Date(rawJoinDate).toISOString().split("T")[0]
+          : su.joinDate || "",
         avatar:
           su.avatar ||
           su.profileImage ||
@@ -91,9 +99,13 @@ export const AuthProvider = ({ children }) => {
 
       localStorage.setItem("authToken", data.data.token);
       const su = data.data.user || {};
+      const rawJoinDate = su.joinDate || su.startDate;
       const normalized = {
         ...su,
         id: su.id || su._id,
+        joinDate: rawJoinDate
+          ? new Date(rawJoinDate).toISOString().split("T")[0]
+          : su.joinDate || "",
         avatar:
           su.avatar ||
           su.profileImage ||
@@ -140,9 +152,13 @@ export const AuthProvider = ({ children }) => {
       const data = response.data;
       if (!data.status) throw new Error(data.message || "Update failed");
 
+      const rawJoinDate = data.data.joinDate || data.data.startDate;
       const updatedUser = {
         ...user,
         ...data.data,
+        joinDate: rawJoinDate
+          ? new Date(rawJoinDate).toISOString().split("T")[0]
+          : user.joinDate || "",
         avatar:
           data.data.profileImage ||
           user.avatar ||
