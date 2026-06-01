@@ -539,6 +539,7 @@ const Attendance = () => {
                     <th>Total Hours</th>
                     <th>Location</th>
                   </tr>
+                  
                 </thead>
                 <tbody>
                   {filteredData.map((item, index) => (
