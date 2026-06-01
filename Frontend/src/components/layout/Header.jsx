@@ -30,6 +30,8 @@ import {
   Sun,
   Moon,
   Monitor,
+  List,
+  IndianRupee,
 } from 'lucide-react';
 import logo from '../../assets/download.png';
 
@@ -109,7 +111,8 @@ export const Header = () => {
         { label: 'Employees', href: '/employees', icon: Users },
         { label: 'Departments', href: '/departments', icon: Building2 },
         { label: 'Attendance', href: '/attendance', icon: UserCheck },
-        { label: 'Salary', href: '/salary', icon: DollarSign },
+        { label: "Tasks", href: "/taskmanagement", icon: List },
+        { label: 'Salary', href: '/salary', icon: IndianRupee },
         { label: 'Leave Requests', href: '/leave-requests', icon: Calendar },
         { label: 'Recruitment', href: '/recruitment', icon: Briefcase },
         { label: 'Device Management', href: '/device-management', icon: Laptop },
@@ -121,7 +124,8 @@ export const Header = () => {
         { label: 'Dashboard', href: '/dashboard', icon: Building2 },
         { label: 'My Profile', href: '/profile', icon: User },
         { label: 'Attendance', href: '/attendance', icon: UserCheck },
-        { label: 'My Salary', href: '/salary', icon: DollarSign },
+        { label: "Tasks", href: "/taskmanagement", icon: List },
+        { label: 'My Salary', href: '/salary', icon: IndianRupee },
         { label: 'Leave Requests', href: '/leave-requests', icon: Calendar },
         { label: 'Calendar', href: '/calendar', icon: Calendar },
         { label: 'My Devices', href: '/my-devices', icon: Laptop },
