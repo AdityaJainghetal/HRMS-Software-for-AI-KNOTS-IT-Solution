@@ -693,7 +693,7 @@ export const uploadAttendance = async (req, res) => {
               row["hours"]?.trim() ||
               null;
 
-            let status = (row["Status"]?.trim() || "P").toUpperCase();
+            let status = (row["Status"]?.trim() || "Sunday").toUpperCase();
 
             const statusMap = {
               PRESENT: "P",
@@ -702,6 +702,7 @@ export const uploadAttendance = async (req, res) => {
               WEEKOFF: "W",
               HALFDAY: "HD",
               LATE: "LH",
+              SUNDAY: "Sunday",
               CL: "CL",
               HCL: "HCL",
             };
@@ -721,9 +722,10 @@ export const uploadAttendance = async (req, res) => {
               "XX",
               "CL",
               "HCL",
+              "Sunday",
             ];
             if (!validStatuses.includes(status)) {
-              status = "P"; // default to Present
+              status = "Sunday"; // default to Sunday when missing or invalid
             }
 
             // Save or Update Attendance

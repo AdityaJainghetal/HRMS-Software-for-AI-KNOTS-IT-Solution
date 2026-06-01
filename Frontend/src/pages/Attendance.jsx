@@ -184,6 +184,18 @@ const Attendance = () => {
     { code: "HCL", meaning: "Half Casual Leave" },
   ];
 
+  const formatFullDate = (dateValue) => {
+    if (!dateValue) return "—";
+    const date = new Date(dateValue);
+    if (isNaN(date.getTime())) return "—";
+    return date.toLocaleDateString("en-IN", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
   return (
     <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
       {isHR ? (
@@ -474,7 +486,7 @@ const Attendance = () => {
                       <td>
                         <strong>{item.employee?.name || "N/A"}</strong>
                       </td>
-                      <td>{new Date(item.date).toLocaleDateString("en-IN")}</td>
+                      <td>{formatFullDate(item.date)}</td>
                       <td>
                         <strong style={{ color: "#007bff" }}>
                           {item.status}
@@ -531,7 +543,7 @@ const Attendance = () => {
                 <tbody>
                   {filteredData.map((item, index) => (
                     <tr key={item._id || index}>
-                      <td>{new Date(item.date).toLocaleDateString("en-IN")}</td>
+                      <td>{formatFullDate(item.date)}</td>
                       <td>
                         <strong style={{ color: "#007bff" }}>
                           {item.status}
