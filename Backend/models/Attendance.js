@@ -57,7 +57,7 @@ const AttendanceSchema = new mongoose.Schema(
         "HCL",
         "Sunday",
       ],
-      default: "Sunday",
+      default: null,
     },
 
     month: {

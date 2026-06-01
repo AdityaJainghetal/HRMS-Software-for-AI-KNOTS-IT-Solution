@@ -12,6 +12,7 @@ const Attendance = () => {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState("");
+  const [statusUpdatingId, setStatusUpdatingId] = useState(null);
 
   // HR Only States
   const [employees, setEmployees] = useState([]);
@@ -173,6 +174,7 @@ const Attendance = () => {
     { code: "P", meaning: "Present" },
     { code: "A", meaning: "Absent" },
     { code: "H", meaning: "Holiday" },
+    { code: "Sunday", meaning: "Sunday" },
     { code: "W", meaning: "Weekly Off" },
     { code: "LH", meaning: "Less Hours" },
     { code: "HD", meaning: "Half Day" },
@@ -183,6 +185,65 @@ const Attendance = () => {
     { code: "CL", meaning: "Casual Leave" },
     { code: "HCL", meaning: "Half Casual Leave" },
   ];
+
+  const statusOptions = [
+    { value: "", label: "Select status" },
+    { value: "P", label: "Present" },
+    { value: "A", label: "Absent" },
+    { value: "H", label: "Holiday" },
+    { value: "Sunday", label: "Sunday" },
+    { value: "W", label: "Weekly Off" },
+    { value: "LH", label: "Less Hours" },
+    { value: "HD", label: "Half Day" },
+    { value: "PW", label: "Present On WeekOff" },
+    { value: "PH", label: "Present On Holiday" },
+    { value: "PHW", label: "Present On Holiday & WeekOff" },
+    { value: "XX", label: "Not Applicable" },
+    { value: "CL", label: "Casual Leave" },
+    { value: "HCL", label: "Half Casual Leave" },
+  ];
+
+  const handleStatusChange = async (item, newStatus) => {
+    const token = getAuthToken();
+    if (!token) return;
+    const config = { headers: { Authorization: `Bearer ${token}` } };
+    const employeeId =
+      item.employee?._id || item.employee?.id || item.employeeId;
+    const date = item.date;
+    if (!employeeId || !date) return;
+
+    setStatusUpdatingId(item._id || `${employeeId}-${date}`);
+    try {
+      await axios.post(
+        "https://hrms-software-for-ai-knots-it-solution-1.onrender.com/api/attendance/upsert",
+        {
+          employeeId,
+          date,
+          status: newStatus || null,
+        },
+        config,
+      );
+
+      setData((prev) =>
+        prev.map((row) =>
+          row._id === item._id
+            ? {
+                ...row,
+                status: newStatus,
+              }
+            : row,
+        ),
+      );
+      toast.success("Attendance status updated successfully.");
+    } catch (error) {
+      console.error("Failed to update status:", error);
+      toast.error(
+        error.response?.data?.message || "Failed to update attendance status",
+      );
+    } finally {
+      setStatusUpdatingId(null);
+    }
+  };
 
   const formatFullDate = (dateValue) => {
     if (!dateValue) return "—";
@@ -488,9 +549,25 @@ const Attendance = () => {
                       </td>
                       <td>{formatFullDate(item.date)}</td>
                       <td>
-                        <strong style={{ color: "#007bff" }}>
-                          {item.status}
-                        </strong>
+                        <select
+                          value={item.status || ""}
+                          onChange={(e) =>
+                            handleStatusChange(item, e.target.value)
+                          }
+                          disabled={statusUpdatingId === item._id}
+                          style={{
+                            padding: "8px",
+                            borderRadius: "5px",
+                            border: "1px solid #ccc",
+                            minWidth: "140px",
+                          }}
+                        >
+                          {statusOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
                       </td>
                       <td>{item.checkIn || "—"}</td>
                       <td>{item.checkOut || "—"}</td>

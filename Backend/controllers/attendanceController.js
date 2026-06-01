@@ -587,6 +587,34 @@ function mapStatus(status) {
   return "present";
 }
 
+const normalizeAttendanceStatus = (rawStatus) => {
+  if (rawStatus === undefined || rawStatus === null) return null;
+  const status = String(rawStatus).trim().toUpperCase();
+  const statusMap = {
+    PRESENT: "P",
+    P: "P",
+    ABSENT: "A",
+    A: "A",
+    HOLIDAY: "H",
+    H: "H",
+    WEEKOFF: "W",
+    W: "W",
+    HALFDAY: "HD",
+    HD: "HD",
+    LATE: "LH",
+    LH: "LH",
+    SUNDAY: "Sunday",
+    SUN: "Sunday",
+    CL: "CL",
+    HCL: "HCL",
+    PW: "PW",
+    PH: "PH",
+    PHW: "PHW",
+    XX: "XX",
+  };
+  return statusMap[status] || null;
+};
+
 export const uploadAttendance = async (req, res) => {
   try {
     if (!req.file) {
@@ -659,8 +687,8 @@ export const uploadAttendance = async (req, res) => {
                   year = parseInt(parts[2], 10);
                 }
 
-                attendanceDate = new Date(year, month, day);
-                attendanceDate.setHours(0, 0, 0, 0);
+                // Use UTC to avoid timezone conversion issues (e.g., day 31 becoming day 30)
+                attendanceDate = new Date(Date.UTC(year, month, day));
               }
             } else {
               // Fallback
@@ -694,40 +722,7 @@ export const uploadAttendance = async (req, res) => {
               row["hours"]?.trim() ||
               null;
 
-            let status = (row["Status"]?.trim() || "Sunday").toUpperCase();
-
-            const statusMap = {
-              PRESENT: "P",
-              ABSENT: "A",
-              HOLIDAY: "H",
-              WEEKOFF: "W",
-              HALFDAY: "HD",
-              LATE: "LH",
-              SUNDAY: "Sunday",
-              CL: "CL",
-              HCL: "HCL",
-            };
-
-            status = statusMap[status] || status;
-
-            const validStatuses = [
-              "P",
-              "A",
-              "H",
-              "W",
-              "LH",
-              "HD",
-              "PW",
-              "PH",
-              "PHW",
-              "XX",
-              "CL",
-              "HCL",
-              "Sunday",
-            ];
-            if (!validStatuses.includes(status)) {
-              status = "Sunday"; // default to Sunday when missing or invalid
-            }
+            const status = normalizeAttendanceStatus(row["Status"]?.trim());
 
             // Save or Update Attendance
             await Attendance.findOneAndUpdate(
@@ -1785,7 +1780,7 @@ export const upsert = async (req, res) => {
     if (!rec) rec = new Attendance({ employee: emp._id, date: day });
     if (checkIn !== undefined) rec.checkIn = checkIn;
     if (checkOut !== undefined) rec.checkOut = checkOut;
-    if (status !== undefined) rec.status = status;
+    if (status !== undefined) rec.status = normalizeAttendanceStatus(status);
     if (location !== undefined) rec.location = location;
     await rec.save();
 
