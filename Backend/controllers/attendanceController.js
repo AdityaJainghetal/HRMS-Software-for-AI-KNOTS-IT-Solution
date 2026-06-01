@@ -334,6 +334,7 @@ const mapRecord = (rec, empDoc) => {
     date: new Date(rec.date).toISOString().split("T")[0],
     checkIn: rec.checkIn,
     checkOut: rec.checkOut,
+    totalHours: rec.totalHours,
     workingHours: computeWorkingHours(rec.checkIn, rec.checkOut),
     status: rec.status,
     location: rec.location,
