@@ -130,7 +130,7 @@ const Attendance = () => {
         res = await axios.get(
           "https://hrms-software-for-ai-knots-it-solution-1.onrender.com/api/attendance/me",
           {
-            params: { limit: 30 },
+            params: { limit: 31 },
             ...config,
           },
         );
@@ -247,7 +247,22 @@ const Attendance = () => {
 
   const formatFullDate = (dateValue) => {
     if (!dateValue) return "—";
-    const date = new Date(dateValue);
+
+    let date;
+    if (dateValue instanceof Date) {
+      date = dateValue;
+    } else if (typeof dateValue === "string") {
+      const isoMatch = dateValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (isoMatch) {
+        const [, year, month, day] = isoMatch;
+        date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+      } else {
+        date = new Date(dateValue);
+      }
+    } else {
+      date = new Date(dateValue);
+    }
+
     if (isNaN(date.getTime())) return "—";
     return date.toLocaleDateString("en-IN", {
       weekday: "long",

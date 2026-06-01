@@ -491,7 +491,7 @@ export const myHistory = async (req, res) => {
     const userId = req.user?._id; // JWT contains _id, not employeeId
     if (!userId)
       return res.status(401).json({ status: false, message: "Unauthorized" });
-    const { limit = 30 } = req.query;
+    const { limit = 31 } = req.query;
     const recs = await Attendance.find({ employee: userId })
       .sort({ date: -1 })
       .limit(Number(limit));
