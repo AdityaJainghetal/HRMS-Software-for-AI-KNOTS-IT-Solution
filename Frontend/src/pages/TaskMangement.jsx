@@ -1,53 +1,3 @@
-// import { useState, useEffect, useRef, useMemo } from "react";
-// import { useAuth } from "../contexts/AuthContext";
-// import { Button } from "../components/ui/button";
-// import { Input } from "../components/ui/input";
-// import {
-//   Card,
-//   CardContent,
-//   CardHeader,
-//   CardTitle,
-// } from "../components/ui/card";
-// import { Badge } from "../components/ui/badge";
-// import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs";
-// import { Avatar, AvatarFallback } from "../components/ui/avatar";
-// import {
-//   Select,
-//   SelectContent,
-//   SelectItem,
-//   SelectTrigger,
-//   SelectValue,
-// } from "../components/ui/select";
-// import {
-//   Dialog,
-//   DialogContent,
-//   DialogDescription,
-//   DialogHeader,
-//   DialogTitle,
-//   DialogTrigger,
-// } from "../components/ui/dialog";
-// import { Label } from "../components/ui/label";
-// import {
-//   Table,
-//   TableBody,
-//   TableCell,
-//   TableHead,
-//   TableHeader,
-//   TableRow,
-// } from "../components/ui/table";
-// import {
-//   Plus,
-//   Search,
-//   Edit,
-//   Trash2,
-//   Calendar,
-//   Clock,
-//   Users,
-//   Briefcase,
-// } from "lucide-react";
-// import { toast } from "react-toastify";
-// import axios from "axios";
-// import DatePicker from "react-datepicker";
 // import "react-datepicker/dist/react-datepicker.css";
 
 // const API_URL = import.meta.env.VITE_API_URL;
@@ -1270,9 +1220,7 @@ const TaskManagement = () => {
   const canEmployeeUpdateTaskStatus = (task) =>
     !isHR &&
     task &&
-    String(task.status || "pending").toLowerCase() !== "completed" &&
-    (String(normalizeEntityId(task.assignedTo)) === String(user?._id) ||
-      isCreatorWithinEditWindow(task));
+    String(normalizeEntityId(task.assignedTo)) === String(user?._id);
 
   // Create Task
   const handleCreateTask = async () => {
@@ -1443,18 +1391,12 @@ const TaskManagement = () => {
             if (!open) resetNewTask();
           }}
         >
-         
-
-            <DialogTrigger asChild>
-                          <Button className="btn-gradient w-60">
-                            <Plus className="w-5 h-5 mr-2" />
-                                Create New Task
-                          </Button>
-                        </DialogTrigger>
-       
-
-                  
-                        
+          <DialogTrigger asChild>
+            <Button className="btn-gradient w-60">
+              <Plus className="w-5 h-5 mr-2" />
+              Create New Task
+            </Button>
+          </DialogTrigger>
 
           <DialogContent className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -2027,11 +1969,6 @@ const TaskManagement = () => {
               Cancel
             </Button>
             <Button
-              disabled={
-                !isHR &&
-                editingTask?.status &&
-                String(editingTask.status).toLowerCase() === "completed"
-              }
               className={
                 editingTask?.status === "completed"
                   ? "bg-emerald-500 hover:bg-emerald-600 text-white"

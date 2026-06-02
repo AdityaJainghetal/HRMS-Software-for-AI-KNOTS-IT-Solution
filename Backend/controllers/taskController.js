@@ -255,54 +255,43 @@ export const updateTask = async (req, res) => {
       status,
       priority,
     } = req.body;
+
     const userId = req.user._id;
     const userRole = req.user.role;
 
     const task = await Task.findById(id);
-
     if (!task) {
-      return res.status(404).json({
+      return res.status(404).json({ status: false, message: "Task not found" });
+    }
+
+    const createdById = task.createdBy?.toString();
+    const assignedToId = task.assignedTo?.toString();
+
+    const isCreator = createdById === userId.toString();
+    const isAssignedEmployee = assignedToId === userId.toString();
+    const isHR = userRole === "hr";
+
+    const isWithin5Min = (date) => {
+      return Date.now() - new Date(date).getTime() < 5 * 60 * 1000;
+    };
+
+    const withinCreatorWindow = isCreator && isWithin5Min(task.createdAt);
+    const withinAssignedWindow = isAssignedEmployee && isWithin5Min(task.createdAt);
+
+    // Permission Check
+    if (!isHR && !isCreator && !isAssignedEmployee) {
+      return res.status(403).json({
         status: false,
-        message: "Task not found",
+        message: "You don't have permission to update this task",
       });
     }
 
-    // Allow HR always. Allow assigned employee. Also allow the creator
-    // to edit within a 5-minute window after creation.
-    const createdById = task.createdBy?.toString();
-    const isCreator = createdById === userId.toString();
-    const withinCreatorFullEditWindow =
-      isCreator &&
-      Date.now() - new Date(task.createdAt).getTime() < 5 * 60 * 1000;
+    // Decide if full edit is allowed
+    const allowFullEdit = isHR || withinCreatorWindow || withinAssignedWindow;
 
-    if (userRole !== "hr") {
-      if (!isCreator && task.assignedTo?.toString() !== userId.toString()) {
-        return res.status(403).json({
-          status: false,
-          message: "You don't have permission to update this task",
-        });
-      }
-    }
-
-    const previousAssignedTo = task.assignedTo?.toString() || null;
-    const isEmployee = userRole !== "hr";
-    const isAssignedEmployee =
-      isEmployee && task.assignedTo?.toString() === userId.toString();
-    const creator = await Employee.findById(task.createdBy);
-    const isCreatedByJesh =
-      String(creator?.name || "").toLowerCase() === "jesh";
-    const withinEmployeeFullEditWindow =
-      isAssignedEmployee &&
-      Date.now() - new Date(task.createdAt).getTime() < 5 * 60 * 1000;
-
-    const allowFullEdit =
-      userRole === "hr" ||
-      withinCreatorFullEditWindow ||
-      withinEmployeeFullEditWindow;
-
-    if (!allowFullEdit && isEmployee) {
-      // Non-HR employees who are not inside full-edit window can only update status
-      // and only for tasks assigned by Jesh.
+    // === Restricted Mode (After 5 minutes for employees) ===
+    if (!allowFullEdit) {
+      // Only status update allowed
       if (
         title ||
         category ||
@@ -313,30 +302,27 @@ export const updateTask = async (req, res) => {
       ) {
         return res.status(403).json({
           status: false,
-          message:
-            "Only the assigned employee can update task status after 5 minutes. Full details are editable only during the first 5 minutes.",
+          message: "Full task details are editable only during the first 5 minutes. You can only update status now.",
         });
       }
+
       if (!status || !["pending", "inprogress", "completed"].includes(status)) {
         return res.status(400).json({
           status: false,
-          message: "Invalid status",
+          message: "Invalid status value",
         });
       }
-      if (!isCreatedByJesh) {
-        return res.status(403).json({
-          status: false,
-          message:
-            "Only tasks assigned by Jesh allow the assigned employee to update status.",
-        });
-      }
+
       task.status = status;
-    } else {
+    } 
+    // === Full Edit Mode ===
+    else {
       if (title) task.title = title;
       if (category) task.category = category;
       if (description !== undefined) task.description = description;
       if (endDateTime) task.endDateTime = new Date(endDateTime);
       if (priority) task.priority = priority;
+
       if (status && ["pending", "inprogress", "completed"].includes(status)) {
         task.status = status;
       }
@@ -363,16 +349,15 @@ export const updateTask = async (req, res) => {
       .populate("assignedTo", "name email profileImage")
       .populate("createdBy", "name email");
 
-    const newAssignedTo = populatedTask.assignedTo?._id.toString() || null;
-    if (
-      assignedTo !== undefined &&
-      newAssignedTo &&
-      newAssignedTo !== previousAssignedTo
-    ) {
+    // Send email if task is reassigned
+    const previousAssignedTo = task.assignedTo?.toString() || null; // Wait, better to capture before save
+    const newAssignedTo = populatedTask.assignedTo?._id?.toString() || null;
+
+    if (assignedTo !== undefined && newAssignedTo && newAssignedTo !== previousAssignedTo) {
       await sendTaskAssignedEmail(
         populatedTask.assignedTo,
         populatedTask,
-        populatedTask.createdBy?.name,
+        populatedTask.createdBy?.name
       );
     }
 
@@ -388,7 +373,6 @@ export const updateTask = async (req, res) => {
     });
   }
 };
-
 // Delete task (HR only)
 export const deleteTask = async (req, res) => {
   try {
@@ -453,15 +437,6 @@ export const updateTaskStatus = async (req, res) => {
         return res.status(403).json({
           status: false,
           message: "Only HR or the assigned employee can update task status",
-        });
-      }
-      const isCreatedByJesh =
-        String(task.createdBy?.name || "").toLowerCase() === "jesh";
-      if (!isCreatedByJesh) {
-        return res.status(403).json({
-          status: false,
-          message:
-            "Only tasks assigned by Jesh allow the assigned employee to update status.",
         });
       }
     }
