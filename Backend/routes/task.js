@@ -17,6 +17,6 @@ router.get("/:id", authorize(["employee", "hr"]), getTaskById);
 router.post("/", authorize(["employee", "hr"]), createTask);
 router.patch("/:id", authorize(["employee", "hr"]), updateTask);
 router.delete("/:id", authorize(["hr"]), deleteTask);
-router.patch("/:id/status", authorize(["hr"]), updateTaskStatus);
+router.patch("/:id/status", authorize(["employee", "hr"]), updateTaskStatus);
 
 export default router;

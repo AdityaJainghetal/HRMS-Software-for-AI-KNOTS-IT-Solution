@@ -1,61 +1,93 @@
-import { useAuth } from '../contexts/AuthContext';
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { StatCard } from '../components/dashboard/StatCard';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
-import axios from 'axios';
-import { toast } from 'react-toastify';
+import { useAuth } from "../contexts/AuthContext";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { StatCard } from "../components/dashboard/StatCard";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
+import axios from "axios";
+import { toast } from "react-toastify";
 
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, PieChart, Pie, Cell
-} from 'recharts';
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
 import {
-  Users, UserCheck, DollarSign, Calendar, TrendingUp, TrendingDown,
-  Clock, Building2, Bell, Target, Award, Activity,
-  IndianRupee
-} from 'lucide-react';
+  Users,
+  UserCheck,
+  DollarSign,
+  Calendar,
+  TrendingUp,
+  TrendingDown,
+  Clock,
+  Building2,
+  Bell,
+  Target,
+  Award,
+  Activity,
+  IndianRupee,
+} from "lucide-react";
 const API_URL = import.meta.env.VITE_API_URL;
 
 const Dashboard = () => {
-
   const wrapperStyle = {
     paddingBottom: "20px",
-    marginTop: "20px"
+    marginTop: "20px",
   };
 
-  const statCardsContainerStyle = {    
+  const statCardsContainerStyle = {
     alignItems: "stretch",
   };
 
   const weeklyAttendanceContainerStyle = {
-    marginBottom: "20px"
+    marginBottom: "20px",
   };
 
   const recentActivities = {
-    marginBottom: "20px"
-  }
+    marginBottom: "20px",
+  };
 
   const statCardStyle = {
-    height: "150px"
+    height: "150px",
   };
 
   const marginStyle = {
-    marginBottom: "20px"
+    marginBottom: "20px",
   };
 
   const { user, isHR } = useAuth();
   const navigate = useNavigate();
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
-  const [attendanceStats, setAttendanceStats] = useState({ present: 0, absent: 0, total: 0, late: 0, leave: 0 });
+  const [attendanceStats, setAttendanceStats] = useState({
+    present: 0,
+    absent: 0,
+    total: 0,
+    late: 0,
+    leave: 0,
+  });
   const [totalEmployees, setTotalEmployees] = useState(null);
 
   const API_BASE = API_URL;
-  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
 
   const formatEvent = (e) => {
     try {
@@ -63,15 +95,20 @@ const Dashboard = () => {
       const d = new Date(e.date);
       const dateText = isNaN(d.getTime())
         ? String(e.date)
-        : `${d.toLocaleDateString()}${e.time ? `, ${e.time}` : ''}`;
+        : `${d.toLocaleDateString()}${e.time ? `, ${e.time}` : ""}`;
       return {
         id: e._id || e.id,
         title: e.title,
-        type: e.type || 'meeting',
+        type: e.type || "meeting",
         date: dateText,
       };
     } catch {
-      return { id: e._id || e.id, title: e.title, type: e.type || 'meeting', date: String(e.date) };
+      return {
+        id: e._id || e.id,
+        title: e.title,
+        type: e.type || "meeting",
+        date: String(e.date),
+      };
     }
   };
 
@@ -87,7 +124,9 @@ const Dashboard = () => {
       setUpcomingEvents(items.map(formatEvent));
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.message || 'Failed to load upcoming events');
+      toast.error(
+        err.response?.data?.message || "Failed to load upcoming events",
+      );
     } finally {
       setLoadingEvents(false);
     }
@@ -100,15 +139,18 @@ const Dashboard = () => {
     const fetchStats = async () => {
       if (!token) return;
       try {
-        const res = await axios.get(`${API_BASE}/api/attendance/stats`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await axios.get(`${API_BASE}/api/attendance/stats`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         if (res.data && res.data.stats) {
           // Treat 'late' as present for dashboard reporting
           const s = res.data.stats;
-          const presentWithLate = (Number(s.present) || 0) + (Number(s.late) || 0);
+          const presentWithLate =
+            (Number(s.present) || 0) + (Number(s.late) || 0);
           setAttendanceStats({ ...s, present: presentWithLate });
         }
       } catch (err) {
-        console.error('Failed to load attendance stats', err);
+        console.error("Failed to load attendance stats", err);
       }
     };
     fetchStats();
@@ -116,11 +158,13 @@ const Dashboard = () => {
     const fetchTotalEmployees = async () => {
       if (!token) return;
       try {
-        const res = await axios.get(`${API_BASE}/api/employees`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await axios.get(`${API_BASE}/api/employees`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         const list = Array.isArray(res.data?.data) ? res.data.data : [];
         setTotalEmployees(list.length);
       } catch (err) {
-        console.error('Failed to load total employees', err);
+        console.error("Failed to load total employees", err);
       }
     };
     fetchTotalEmployees();
@@ -128,7 +172,9 @@ const Dashboard = () => {
     const fetchSalaryData = async () => {
       if (!token) return;
       try {
-        const res = await axios.get(`${API_BASE}/api/payroll`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await axios.get(`${API_BASE}/api/payroll`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         const payrolls = Array.isArray(res.data?.data) ? res.data.data : [];
         const now = new Date();
 
@@ -136,23 +182,30 @@ const Dashboard = () => {
         const monthsMap = new Map();
         for (let i = 5; i >= 0; i--) {
           const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-          monthsMap.set(key, { date: d, total: 0, label: d.toLocaleString('default', { month: 'short' }) });
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+          monthsMap.set(key, {
+            date: d,
+            total: 0,
+            label: d.toLocaleString("default", { month: "short" }),
+          });
         }
 
         for (const p of payrolls) {
           const pd = p.payDate ? new Date(p.payDate) : null;
           if (!pd || isNaN(pd.getTime())) continue;
-          const key = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, '0')}`;
+          const key = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}`;
           if (monthsMap.has(key)) {
             monthsMap.get(key).total += Number(p.netSalary || 0);
           }
         }
 
-        const arr = Array.from(monthsMap.values()).map(m => ({ month: m.label, amount: m.total }));
+        const arr = Array.from(monthsMap.values()).map((m) => ({
+          month: m.label,
+          amount: m.total,
+        }));
         setSalaryData(arr);
       } catch (err) {
-        console.error('Failed to load salary progression data', err);
+        console.error("Failed to load salary progression data", err);
         // keep existing fallback/mock data already in state
       }
     };
@@ -162,11 +215,11 @@ const Dashboard = () => {
 
   // Weekly attendance (will be loaded from API)
   const [attendanceData, setAttendanceData] = useState([
-    { name: 'Mon', present: 0, absent: 0 },
-    { name: 'Tue', present: 0, absent: 0 },
-    { name: 'Wed', present: 0, absent: 0 },
-    { name: 'Thu', present: 0, absent: 0 },
-    { name: 'Fri', present: 0, absent: 0 },
+    { name: "Mon", present: 0, absent: 0 },
+    { name: "Tue", present: 0, absent: 0 },
+    { name: "Wed", present: 0, absent: 0 },
+    { name: "Thu", present: 0, absent: 0 },
+    { name: "Fri", present: 0, absent: 0 },
   ]);
 
   // Salary progression data (last 6 months). Will be loaded from the backend payrolls.
@@ -176,7 +229,10 @@ const Dashboard = () => {
     // initialize last 6 months with zero amounts
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      arr.push({ month: d.toLocaleString('default', { month: 'short' }), amount: 0 });
+      arr.push({
+        month: d.toLocaleString("default", { month: "short" }),
+        amount: 0,
+      });
     }
     return arr;
   });
@@ -215,31 +271,38 @@ const Dashboard = () => {
         // we want oldest -> newest for chart (Mon..Fri)
         days.reverse();
 
-        const results = await Promise.all(days.map(async (dt) => {
-          const iso = dt.toISOString().slice(0, 10);
-          try {
-            const res = await axios.get(`${API_BASE}/api/attendance/stats`, {
-              params: { date: iso },
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            const stats = res.data?.stats || { present: 0, absent: 0 };
-            return { date: dt, stats };
-          } catch (e) {
-            console.error('weekly attendance fetch failed for', iso, e);
-            return { date: dt, stats: { present: 0, absent: 0 } };
-          }
-        }));
+        const results = await Promise.all(
+          days.map(async (dt) => {
+            const iso = dt.toISOString().slice(0, 10);
+            try {
+              const res = await axios.get(`${API_BASE}/api/attendance/stats`, {
+                params: { date: iso },
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              const stats = res.data?.stats || { present: 0, absent: 0 };
+              return { date: dt, stats };
+            } catch (e) {
+              console.error("weekly attendance fetch failed for", iso, e);
+              return { date: dt, stats: { present: 0, absent: 0 } };
+            }
+          }),
+        );
 
         // Map to names (Mon..Fri) and values
         const mapped = results.map(({ date: dt, stats }) => {
-          const name = dt.toLocaleDateString(undefined, { weekday: 'short' });
-          const presentWithLate = (Number(stats.present) || 0) + (Number(stats.late) || 0);
-          return { name, present: presentWithLate, absent: Number(stats.absent) || 0 };
+          const name = dt.toLocaleDateString(undefined, { weekday: "short" });
+          const presentWithLate =
+            (Number(stats.present) || 0) + (Number(stats.late) || 0);
+          return {
+            name,
+            present: presentWithLate,
+            absent: Number(stats.absent) || 0,
+          };
         });
 
         setAttendanceData(mapped);
       } catch (err) {
-        console.error('Failed to load weekly attendance', err);
+        console.error("Failed to load weekly attendance", err);
       }
     };
 
@@ -248,22 +311,37 @@ const Dashboard = () => {
     const fetchDepartments = async () => {
       try {
         // Try to use a departments public endpoint first
-        const deptRes = await axios.get(`${API_BASE}/api/departments/public-list`);
+        const deptRes = await axios.get(
+          `${API_BASE}/api/departments/public-list`,
+        );
         // Fetch employees to count per department (fallback if departments endpoint doesn't include counts)
-        const empRes = await axios.get(`${API_BASE}/api/employees`, { headers: { Authorization: `Bearer ${token}` } });
+        const empRes = await axios.get(`${API_BASE}/api/employees`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-        const employees = Array.isArray(empRes.data?.data) ? empRes.data.data : [];
-        const deptNames = Array.isArray(deptRes.data?.data) ? deptRes.data.data.map(d => d.name) : [];
+        const employees = Array.isArray(empRes.data?.data)
+          ? empRes.data.data
+          : [];
+        const deptNames = Array.isArray(deptRes.data?.data)
+          ? deptRes.data.data.map((d) => d.name)
+          : [];
 
         // Count employees per department name (use employee.department if it's a name, or employee.department.name)
         const counts = {};
-        employees.forEach(emp => {
-          const name = (emp?.department && (typeof emp.department === 'string' ? emp.department : emp.department?.name)) || 'Others';
+        employees.forEach((emp) => {
+          const name =
+            (emp?.department &&
+              (typeof emp.department === "string"
+                ? emp.department
+                : emp.department?.name)) ||
+            "Others";
           counts[name] = (counts[name] || 0) + 1;
         });
 
         // Ensure departments from public list are included even if count is zero
-        deptNames.forEach(n => { counts[n] = counts[n] || 0; });
+        deptNames.forEach((n) => {
+          counts[n] = counts[n] || 0;
+        });
 
         const names = Object.keys(counts);
 
@@ -275,7 +353,7 @@ const Dashboard = () => {
           let attempts = 0;
           while (attempts < 50) {
             const hue = Math.floor(Math.random() * 360);
-            const ok = usedHues.every(h => {
+            const ok = usedHues.every((h) => {
               const d = Math.abs(h - hue);
               const dist = Math.min(d, 360 - d);
               return dist >= minHueDistance;
@@ -292,20 +370,20 @@ const Dashboard = () => {
           return fallback;
         };
 
-        const data = names.map(name => {
+        const data = names.map((name) => {
           const hue = pickUniqueHue();
           return { name, value: counts[name], color: `hsl(${hue} 70% 50%)` };
         });
         setDepartmentData(data);
       } catch (err) {
-        console.error('Failed to load department data', err);
+        console.error("Failed to load department data", err);
         // fallback to previous mock
         setDepartmentData([
-          { name: 'Engineering', value: 35, color: '#3b82f6' },
-          { name: 'Sales', value: 25, color: '#10b981' },
-          { name: 'Marketing', value: 20, color: '#f59e0b' },
-          { name: 'HR', value: 10, color: '#ef4444' },
-          { name: 'Others', value: 10, color: '#8b5cf6' },
+          { name: "Engineering", value: 35, color: "#3b82f6" },
+          { name: "Sales", value: 25, color: "#10b981" },
+          { name: "Marketing", value: 20, color: "#f59e0b" },
+          { name: "HR", value: 10, color: "#ef4444" },
+          { name: "Others", value: 10, color: "#8b5cf6" },
         ]);
       }
     };
@@ -314,20 +392,25 @@ const Dashboard = () => {
     const fetchPayrollThisMonth = async () => {
       if (!token) return;
       try {
-        const payRes = await axios.get(`${API_BASE}/api/payroll`, { headers: { Authorization: `Bearer ${token}` } });
-        const payrolls = Array.isArray(payRes.data?.data) ? payRes.data.data : [];
+        const payRes = await axios.get(`${API_BASE}/api/payroll`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const payrolls = Array.isArray(payRes.data?.data)
+          ? payRes.data.data
+          : [];
         const now = new Date();
         const month = now.getMonth();
         const year = now.getFullYear();
         const monthTotal = payrolls.reduce((sum, p) => {
           const pd = p.payDate ? new Date(p.payDate) : null;
           if (!pd) return sum;
-          if (pd.getMonth() === month && pd.getFullYear() === year) return sum + (Number(p.netSalary) || 0);
+          if (pd.getMonth() === month && pd.getFullYear() === year)
+            return sum + (Number(p.netSalary) || 0);
           return sum;
         }, 0);
         setPayrollThisMonth(monthTotal);
       } catch (err) {
-        console.error('Failed to load payrolls', err);
+        console.error("Failed to load payrolls", err);
       }
     };
 
@@ -335,12 +418,16 @@ const Dashboard = () => {
       if (!token) return;
       try {
         // backend route is /api/leaves
-        const leaveRes = await axios.get(`${API_BASE}/api/leave`, { headers: { Authorization: `Bearer ${token}` } });
-        const leaves = Array.isArray(leaveRes.data?.data) ? leaveRes.data.data : [];
-        const pending = leaves.filter(l => l.status === 'pending').length;
+        const leaveRes = await axios.get(`${API_BASE}/api/leave`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const leaves = Array.isArray(leaveRes.data?.data)
+          ? leaveRes.data.data
+          : [];
+        const pending = leaves.filter((l) => l.status === "pending").length;
         setPendingRequestsCount(pending);
       } catch (err) {
-        console.error('Failed to load leave requests', err);
+        console.error("Failed to load leave requests", err);
       }
     };
 
@@ -355,16 +442,18 @@ const Dashboard = () => {
 
     const isoDate = (d) => {
       const dd = new Date(d);
-      return new Date(dd.getTime() - dd.getTimezoneOffset()*60000).toISOString().slice(0,10);
+      return new Date(dd.getTime() - dd.getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 10);
     };
 
     const parseWorkingMinutes = (s) => {
-      if (!s || typeof s !== 'string') return 0;
+      if (!s || typeof s !== "string") return 0;
       const m = s.match(/(\d+)h\s+(\d{1,2})m/);
       if (!m) return 0;
       const h = parseInt(m[1], 10);
       const mm = parseInt(m[2], 10);
-      return (isNaN(h) || isNaN(mm)) ? 0 : (h * 60 + mm);
+      return isNaN(h) || isNaN(mm) ? 0 : h * 60 + mm;
     };
 
     const getWeekBounds = (d) => {
@@ -373,10 +462,10 @@ const Dashboard = () => {
       const diffToMonday = (day + 6) % 7; // days since Monday
       const start = new Date(date);
       start.setDate(date.getDate() - diffToMonday);
-      start.setHours(0,0,0,0);
+      start.setHours(0, 0, 0, 0);
       const end = new Date(start);
       end.setDate(start.getDate() + 6);
-      end.setHours(23,59,59,999);
+      end.setHours(23, 59, 59, 999);
       return { start, end };
     };
 
@@ -387,7 +476,9 @@ const Dashboard = () => {
           params: { limit: 30 },
           headers: { Authorization: `Bearer ${token}` },
         });
-        const records = Array.isArray(attRes.data?.data) ? attRes.data.data : [];
+        const records = Array.isArray(attRes.data?.data)
+          ? attRes.data.data
+          : [];
 
         const today = new Date();
         const { start, end } = getWeekBounds(today);
@@ -403,48 +494,77 @@ const Dashboard = () => {
         }
 
         // Filter records within week bounds
-        const weekRecords = records.filter(r => {
+        const weekRecords = records.filter((r) => {
           const d = new Date(r.date);
           return d >= start && d <= capEnd;
         });
 
-        const daysPresent = weekRecords.filter(r => (r.status === 'present' || r.status === 'late')).length;
-        const totalMinutes = weekRecords.reduce((acc, r) => acc + parseWorkingMinutes(r.workingHours || r.hours), 0);
+        const daysPresent = weekRecords.filter(
+          (r) => r.status === "present" || r.status === "late",
+        ).length;
+        const totalMinutes = weekRecords.reduce(
+          (acc, r) => acc + parseWorkingMinutes(r.workingHours || r.hours),
+          0,
+        );
 
         setHoursThisWeek((totalMinutes / 60).toFixed(1));
-        const rate = totalDays > 0 ? Math.round((daysPresent / totalDays) * 100) : 0;
+        const rate =
+          totalDays > 0 ? Math.round((daysPresent / totalDays) * 100) : 0;
         setAttendanceRateUser(`${rate}%`);
 
         // employee details for salary (defensive: API may return different shapes)
         try {
           const empId = user?.id || user?._id;
           if (empId) {
-            const empRes = await axios.get(`${API_BASE}/api/employees/${empId}`, { headers: { Authorization: `Bearer ${token}` } });
+            const empRes = await axios.get(
+              `${API_BASE}/api/employees/${empId}`,
+              { headers: { Authorization: `Bearer ${token}` } },
+            );
             // store raw responses for easier debugging in the browser UI
-            setSalaryDebug(prev => ({ ...prev, empRes: empRes.data }));
-            console.debug('employee API response for', empId, empRes.data);
+            setSalaryDebug((prev) => ({ ...prev, empRes: empRes.data }));
+            console.debug("employee API response for", empId, empRes.data);
             // Common shapes: { data: { ...mappedEmployee } } or returned populated user object
             const possible = empRes.data?.data ?? empRes.data ?? {};
             // Salary might be number or string; prefer explicit number
-            let salaryVal = (possible && (possible.salary ?? possible.data?.salary)) ?? user?.salary ?? null;
+            let salaryVal =
+              (possible && (possible.salary ?? possible.data?.salary)) ??
+              user?.salary ??
+              null;
             // fallback: if still null, try listing employees and match by email or id
             if (salaryVal == null) {
               try {
-                const allRes = await axios.get(`${API_BASE}/api/employees`, { headers: { Authorization: `Bearer ${token}` } });
+                const allRes = await axios.get(`${API_BASE}/api/employees`, {
+                  headers: { Authorization: `Bearer ${token}` },
+                });
                 // store fallback list for debugging
-                setSalaryDebug(prev => ({ ...prev, allRes: allRes.data }));
-                const list = Array.isArray(allRes.data?.data) ? allRes.data.data : (Array.isArray(allRes.data) ? allRes.data : []);
-                const found = list.find(e => String(e.id || e._id) === String(empId) || String(e.employeeId) === String(user?.employeeId) || (e.email && user?.email && e.email.toLowerCase() === user.email.toLowerCase()));
+                setSalaryDebug((prev) => ({ ...prev, allRes: allRes.data }));
+                const list = Array.isArray(allRes.data?.data)
+                  ? allRes.data.data
+                  : Array.isArray(allRes.data)
+                    ? allRes.data
+                    : [];
+                const found = list.find(
+                  (e) =>
+                    String(e.id || e._id) === String(empId) ||
+                    String(e.employeeId) === String(user?.employeeId) ||
+                    (e.email &&
+                      user?.email &&
+                      e.email.toLowerCase() === user.email.toLowerCase()),
+                );
                 if (found) {
-                  console.debug('found employee in list fallback', found);
+                  console.debug("found employee in list fallback", found);
                   salaryVal = found.salary ?? found.data?.salary ?? null;
                 }
               } catch (fe) {
-                console.debug('fallback employees list fetch failed', fe);
+                console.debug("fallback employees list fetch failed", fe);
               }
             }
             if (salaryVal == null) {
-              console.debug('salary not found for user; empRes / user:', empRes.data, user);
+              console.debug(
+                "salary not found for user; empRes / user:",
+                empRes.data,
+                user,
+              );
               // optionally notify user in UI for easier debugging
               // toast.info('Employee salary not found (check server data)');
             }
@@ -453,22 +573,31 @@ const Dashboard = () => {
             setCurrentSalary(user?.salary ?? null);
           }
         } catch (e) {
-          console.error('Failed to fetch employee details', e);
+          console.error("Failed to fetch employee details", e);
           setCurrentSalary(user?.salary ?? null);
         }
 
-        // leave balance: sum approved leave days for this user
+        // leave balance: get remaining leave balance from employee record
         try {
-          const leaveRes = await axios.get(`${API_BASE}/api/leave`, { headers: { Authorization: `Bearer ${token}` } });
-          const leaves = Array.isArray(leaveRes.data?.data) ? leaveRes.data.data : [];
-          const approvedDays = leaves.filter(l => l.status === 'approved').reduce((s, l) => s + (Number(l.days) || 0), 0);
-          setLeaveBalanceDays(approvedDays);
+          const empId = user?.id || user?._id;
+          if (empId) {
+            const empRes = await axios.get(
+              `${API_BASE}/api/employees/${empId}`,
+              { headers: { Authorization: `Bearer ${token}` } },
+            );
+            const employeeData = empRes.data?.data ?? empRes.data ?? {};
+            const balance =
+              employeeData.leaveBalance ?? user?.leaveBalance ?? 0;
+            setLeaveBalanceDays(Number(balance));
+          } else {
+            setLeaveBalanceDays(user?.leaveBalance ?? 0);
+          }
         } catch (e) {
-          console.error('Failed to fetch leaves for employee', e);
-          setLeaveBalanceDays(0);
+          console.error("Failed to fetch leave balance for employee", e);
+          setLeaveBalanceDays(user?.leaveBalance ?? 0);
         }
       } catch (err) {
-        console.error('Failed to load employee attendance', err);
+        console.error("Failed to load employee attendance", err);
       }
     };
 
@@ -479,10 +608,34 @@ const Dashboard = () => {
   const [loadingActivities, setLoadingActivities] = useState(false);
 
   const fallbackRecentActivities = [
-    { id: 1, user: 'leul Gedion', action: 'submitted leave request', time: '2 hours ago', type: 'leave' },
-    { id: 2, user: 'Abebe Kebede', action: 'marked attendance', time: '3 hours ago', type: 'attendance' },
-    { id: 3, user: 'Habtumu Teshome', action: 'updated profile', time: '5 hours ago', type: 'profile' },
-    { id: 4, user: 'Jossy Chencha', action: 'applied for Engineering role', time: '1 day ago', type: 'recruitment' },
+    {
+      id: 1,
+      user: "leul Gedion",
+      action: "submitted leave request",
+      time: "2 hours ago",
+      type: "leave",
+    },
+    {
+      id: 2,
+      user: "Abebe Kebede",
+      action: "marked attendance",
+      time: "3 hours ago",
+      type: "attendance",
+    },
+    {
+      id: 3,
+      user: "Habtumu Teshome",
+      action: "updated profile",
+      time: "5 hours ago",
+      type: "profile",
+    },
+    {
+      id: 4,
+      user: "Jossy Chencha",
+      action: "applied for Engineering role",
+      time: "1 day ago",
+      type: "recruitment",
+    },
   ];
 
   const fetchActivities = async (limit = isHR ? 6 : 8) => {
@@ -492,11 +645,14 @@ const Dashboard = () => {
       const params = { limit };
       // If not HR, only fetch my activities
       if (!isHR) params.mine = true;
-      const res = await axios.get(`${API_BASE}/api/activities`, { params, headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.get(`${API_BASE}/api/activities`, {
+        params,
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const list = Array.isArray(res.data?.data) ? res.data.data : [];
       setActivities(list);
     } catch (err) {
-      console.error('Failed to load activities', err);
+      console.error("Failed to load activities", err);
     } finally {
       setLoadingActivities(false);
     }
@@ -508,8 +664,10 @@ const Dashboard = () => {
     return (
       <div className="container mx-auto p-6 space-y-8">
         {/* Welcome Section */}
-        <div className="bg-gradient-hero rounded-2xl p-8 
-                        text-black dark:text-white">
+        <div
+          className="bg-gradient-hero rounded-2xl p-8 
+                        text-black dark:text-white"
+        >
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold mb-2">{`Welcome back, ${user?.name}!`}</h1>
@@ -519,25 +677,35 @@ const Dashboard = () => {
             </div>
             <div className="hidden md:block">
               <div className="bg-white/90 dark:bg-white/10 backdrop-blur-sm rounded-xl p-4">
-                <div className="text-2xl font-bold text-black dark:text-white">{new Date().toLocaleDateString()}</div>
-                <div className="text-sm text-gray-600 dark:text-blue-100">Today</div>
+                <div className="text-2xl font-bold text-black dark:text-white">
+                  {new Date().toLocaleDateString()}
+                </div>
+                <div className="text-sm text-gray-600 dark:text-blue-100">
+                  Today
+                </div>
               </div>
             </div>
           </div>
         </div>
         {/* Stats Grid */}
         <div style={wrapperStyle} className="flex flex-wrap gap-4 mb-5">
-          <div style={statCardsContainerStyle} className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]">
+          <div
+            style={statCardsContainerStyle}
+            className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]"
+          >
             <StatCard
               style={statCardStyle}
               title="Total Employees"
-              value={totalEmployees !== null ? String(totalEmployees) : '0'}
+              value={totalEmployees !== null ? String(totalEmployees) : "0"}
               change="+0"
               icon={Users}
               trend="up"
             />
           </div>
-          <div style={statCardsContainerStyle} className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]">
+          <div
+            style={statCardsContainerStyle}
+            className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]"
+          >
             <StatCard
               style={statCardStyle}
               title="Present Today"
@@ -547,7 +715,10 @@ const Dashboard = () => {
               trend="up"
             />
           </div>
-          <div style={statCardsContainerStyle} className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]">
+          <div
+            style={statCardsContainerStyle}
+            className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]"
+          >
             <StatCard
               style={statCardStyle}
               title="Absent Today"
@@ -557,21 +728,35 @@ const Dashboard = () => {
               trend="down"
             />
           </div>
-          <div style={statCardsContainerStyle} className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]">
+          <div
+            style={statCardsContainerStyle}
+            className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]"
+          >
             <StatCard
               style={statCardStyle}
               title="Payroll This Month"
-              value={payrollThisMonth !== null ? `₹${Number(payrollThisMonth).toLocaleString()}` : '₹0'}
+              value={
+                payrollThisMonth !== null
+                  ? `₹${Number(payrollThisMonth).toLocaleString()}`
+                  : "₹0"
+              }
               change="+0%"
               icon={IndianRupee}
               trend="up"
             />
           </div>
-          <div style={statCardsContainerStyle} className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]">
+          <div
+            style={statCardsContainerStyle}
+            className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]"
+          >
             <StatCard
               style={statCardStyle}
               title="Pending Requests"
-              value={pendingRequestsCount !== null ? String(pendingRequestsCount) : '0'}
+              value={
+                pendingRequestsCount !== null
+                  ? String(pendingRequestsCount)
+                  : "0"
+              }
               change="-3"
               icon={Calendar}
               trend="down"
@@ -579,15 +764,23 @@ const Dashboard = () => {
           </div>
         </div>
         {/* Charts Section */}
-        <div style={weeklyAttendanceContainerStyle} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div
+          style={weeklyAttendanceContainerStyle}
+          className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+        >
           {/* Attendance Chart */}
-          <Card style={weeklyAttendanceContainerStyle} className="dashboard-card">
+          <Card
+            style={weeklyAttendanceContainerStyle}
+            className="dashboard-card"
+          >
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Activity className="w-5 h-5 text-primary" />
                 <span>Weekly Attendance</span>
               </CardTitle>
-              <CardDescription>Employee attendance trends this week</CardDescription>
+              <CardDescription>
+                Employee attendance trends this week
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -609,7 +802,9 @@ const Dashboard = () => {
                 <Building2 className="w-5 h-5 text-primary" />
                 <span>Department Distribution</span>
               </CardTitle>
-              <CardDescription>Employee distribution across departments</CardDescription>
+              <CardDescription>
+                Employee distribution across departments
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -633,8 +828,8 @@ const Dashboard = () => {
               <div className="flex flex-wrap gap-2 mt-4">
                 {departmentData.map((dept) => (
                   <div key={dept.name} className="flex items-center space-x-2">
-                    <div 
-                      className="w-3 h-3 rounded-full" 
+                    <div
+                      className="w-3 h-3 rounded-full"
                       style={{ backgroundColor: dept.color }}
                     />
                     <span className="text-sm text-muted-foreground">
@@ -660,23 +855,52 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {(loadingActivities ? fallbackRecentActivities : (activities.length ? activities : fallbackRecentActivities)).map((activity) => (
-                  <div key={activity.id} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-accent transition-colors">
+                {(loadingActivities
+                  ? fallbackRecentActivities
+                  : activities.length
+                    ? activities
+                    : fallbackRecentActivities
+                ).map((activity) => (
+                  <div
+                    key={activity.id}
+                    className="flex items-center space-x-3 p-3 rounded-lg hover:bg-accent transition-colors"
+                  >
                     <Avatar className="w-8 h-8">
-                      <AvatarImage src={activity.actorAvatar || `https://ui-avatars.com/api/?name=${activity.actorName || activity.user}&background=3b82f6&color=fff`} />
-                      <AvatarFallback>{(activity.actorName || activity.user || '').split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                      <AvatarImage
+                        src={
+                          activity.actorAvatar ||
+                          `https://ui-avatars.com/api/?name=${activity.actorName || activity.user}&background=3b82f6&color=fff`
+                        }
+                      />
+                      <AvatarFallback>
+                        {(activity.actorName || activity.user || "")
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
                       <p className="text-sm">
-                        <span className="font-medium">{activity.actorName || activity.user}</span> {activity.action}
+                        <span className="font-medium">
+                          {activity.actorName || activity.user}
+                        </span>{" "}
+                        {activity.action}
                       </p>
-                      <p className="text-xs text-muted-foreground">{new Date(activity.createdAt || activity.time || Date.now()).toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(
+                          activity.createdAt || activity.time || Date.now(),
+                        ).toLocaleString()}
+                      </p>
                     </div>
-                    <Badge variant={
-                      activity.type === 'leave' ? 'secondary' :
-                      activity.type === 'attendance' ? 'default' :
-                      'outline'
-                    }>
+                    <Badge
+                      variant={
+                        activity.type === "leave"
+                          ? "secondary"
+                          : activity.type === "attendance"
+                            ? "default"
+                            : "outline"
+                      }
+                    >
                       {activity.type}
                     </Badge>
                   </div>
@@ -697,33 +921,49 @@ const Dashboard = () => {
             <CardContent>
               <div className="space-y-4">
                 {loadingEvents && (
-                  <p className="text-sm text-muted-foreground">Loading events…</p>
+                  <p className="text-sm text-muted-foreground">
+                    Loading events…
+                  </p>
                 )}
                 {!loadingEvents && upcomingEvents.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No upcoming events</p>
+                  <p className="text-sm text-muted-foreground">
+                    No upcoming events
+                  </p>
                 )}
-                {!loadingEvents && upcomingEvents.map((event) => (
-                  <div key={event.id} className="flex items-center justify-between p-3 rounded-lg border">
-                    <div>
-                      <p className="font-medium">{event.title}</p>
-                      <p className="text-sm text-muted-foreground">{event.date}</p>
+                {!loadingEvents &&
+                  upcomingEvents.map((event) => (
+                    <div
+                      key={event.id}
+                      className="flex items-center justify-between p-3 rounded-lg border"
+                    >
+                      <div>
+                        <p className="font-medium">{event.title}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {event.date}
+                        </p>
+                      </div>
+                      <Badge
+                        variant={
+                          event.type === "meeting"
+                            ? "default"
+                            : event.type === "holiday"
+                              ? "secondary"
+                              : event.type === "training"
+                                ? "outline"
+                                : event.type === "personal"
+                                  ? "outline"
+                                  : "secondary"
+                        }
+                      >
+                        {event.type}
+                      </Badge>
                     </div>
-                    <Badge variant={
-                      event.type === 'meeting' ? 'default' :
-                      event.type === 'holiday' ? 'secondary' :
-                      event.type === 'training' ? 'outline' :
-                      event.type === 'personal' ? 'outline' :
-                      'secondary'
-                    }>
-                      {event.type}
-                    </Badge>
-                  </div>
-                ))}
+                  ))}
               </div>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full mt-4"
-                onClick={() => navigate('/calendar')}
+                onClick={() => navigate("/calendar")}
               >
                 View Calendar
               </Button>
@@ -741,14 +981,16 @@ const Dashboard = () => {
       <div className="bg-gradient-hero rounded-2xl p-8 text-black dark:text-white">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Welcome back, {user?.name}!</h1>
+            <h1 className="text-3xl font-bold mb-2">
+              Welcome back, {user?.name}!
+            </h1>
             <p className="text-blue-100">Have a productive day ahead.</p>
           </div>
           <div className="hidden md:block">
-            <Button 
-              variant="secondary" 
+            <Button
+              variant="secondary"
               className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20"
-              onClick={() => navigate('/attendance')}
+              onClick={() => navigate("/attendance")}
             >
               <Clock className="w-4 h-4 mr-2" />
               Mark Attendance
@@ -759,115 +1001,60 @@ const Dashboard = () => {
 
       {/* Personal Stats */}
       <div style={wrapperStyle} className="flex flex-wrap gap-4 mb-5">
-        <div style={statCardsContainerStyle} className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]">
+        <div
+          style={statCardsContainerStyle}
+          className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]"
+        >
           <StatCard
             style={statCardStyle}
             title="Hours This Week"
-            value={hoursThisWeek !== null ? String(hoursThisWeek) : '--'}
+            value={hoursThisWeek !== null ? String(hoursThisWeek) : "--"}
             change="+2.5"
             icon={Clock}
             trend="up"
           />
         </div>
-        <div style={statCardsContainerStyle} className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]">
+        <div
+          style={statCardsContainerStyle}
+          className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]"
+        >
           <StatCard
             style={statCardStyle}
             title="Attendance Rate"
-            value={attendanceRateUser || '--'}
+            value={attendanceRateUser || "--"}
             change="+2%"
             icon={UserCheck}
             trend="up"
           />
-          
         </div>
-        <div style={statCardsContainerStyle} className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]">
+        <div
+          style={statCardsContainerStyle}
+          className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]"
+        >
           <StatCard
             style={statCardStyle}
             title="Current Salary"
-            value={currentSalary !== null ? `₹${Number(currentSalary).toLocaleString()}` : '--'}
+            value={
+              currentSalary !== null
+                ? `₹${Number(currentSalary).toLocaleString()}`
+                : "--"
+            }
             icon={IndianRupee}
           />
         </div>
-        <div style={statCardsContainerStyle} className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]">
+        <div
+          style={statCardsContainerStyle}
+          className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]"
+        >
           <StatCard
             style={statCardStyle}
             title="Leave Balance"
-            value={leaveBalanceDays !== null ? `${leaveBalanceDays} days` : '--'}
+            value={
+              leaveBalanceDays !== null ? `${leaveBalanceDays} days` : "--"
+            }
             icon={Calendar}
           />
         </div>
-      </div>
-
-      {/* Personal Charts */}
-      <div style={marginStyle} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Salary Progression */}
-        <Card style={marginStyle} className="dashboard-card">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <TrendingUp className="w-5 h-5 text-primary" />
-              <span>Salary Progression</span>
-            </CardTitle>
-            <CardDescription>Your salary growth over time</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={salaryData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="amount" stroke="#3b82f6" strokeWidth={3} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions */}
-        <Card className="dashboard-card">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Target className="w-5 h-5 text-primary" />
-              <span>Quick Actions</span>
-            </CardTitle>
-            <CardDescription>Frequently used actions</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <Button 
-                variant="outline" 
-                className="h-20 flex-col space-y-2"
-                onClick={() => navigate('/attendance')}
-              >
-                <UserCheck className="w-6 h-6" />
-                <span>Mark Attendance</span>
-              </Button>
-              <Button 
-                variant="outline" 
-                className="h-20 flex-col space-y-2"
-                onClick={() => navigate('/leave-requests')}
-              >
-                <Calendar className="w-6 h-6" />
-                <span>Request Leave</span>
-              </Button>
-              <Button 
-                variant="outline" 
-                className="h-20 flex-col space-y-2"
-                onClick={() => navigate('/payslips')}
-              >
-                <DollarSign className="w-6 h-6" />
-                <span>View Payslip</span>
-              </Button>
-              <Button 
-                variant="outline" 
-                className="h-20 flex-col space-y-2"
-                onClick={() => navigate('/goals')}
-              >
-                <Award className="w-6 h-6" />
-                <span>My Goals</span>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Personal Activity */}
@@ -886,14 +1073,18 @@ const Dashboard = () => {
                 <UserCheck className="w-5 h-5 text-primary" />
                 <div>
                   <p className="text-sm font-medium">Marked attendance</p>
-                  <p className="text-xs text-muted-foreground">Today, 9:15 AM</p>
+                  <p className="text-xs text-muted-foreground">
+                    Today, 9:15 AM
+                  </p>
                 </div>
               </div>
               <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-accent transition-colors">
                 <Calendar className="w-5 h-5 text-orange-500" />
                 <div>
                   <p className="text-sm font-medium">Leave request approved</p>
-                  <p className="text-xs text-muted-foreground">Yesterday, 3:30 PM</p>
+                  <p className="text-xs text-muted-foreground">
+                    Yesterday, 3:30 PM
+                  </p>
                 </div>
               </div>
               <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-accent transition-colors">
@@ -920,28 +1111,40 @@ const Dashboard = () => {
               {loadingEvents && (
                 <p className="text-sm text-muted-foreground">Loading events…</p>
               )}
-              {!loadingEvents && upcomingEvents.slice(0, 3).map((event) => (
-                <div key={event.id} className="flex items-center justify-between p-3 rounded-lg border">
-                  <div>
-                    <p className="font-medium">{event.title}</p>
-                    <p className="text-sm text-muted-foreground">{event.date}</p>
+              {!loadingEvents &&
+                upcomingEvents.slice(0, 3).map((event) => (
+                  <div
+                    key={event.id}
+                    className="flex items-center justify-between p-3 rounded-lg border"
+                  >
+                    <div>
+                      <p className="font-medium">{event.title}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {event.date}
+                      </p>
+                    </div>
+                    <Badge
+                      variant={
+                        event.type === "meeting"
+                          ? "default"
+                          : event.type === "holiday"
+                            ? "secondary"
+                            : event.type === "training"
+                              ? "outline"
+                              : event.type === "personal"
+                                ? "outline"
+                                : "secondary"
+                      }
+                    >
+                      {event.type}
+                    </Badge>
                   </div>
-                  <Badge variant={
-                    event.type === 'meeting' ? 'default' :
-                    event.type === 'holiday' ? 'secondary' :
-                    event.type === 'training' ? 'outline' :
-                    event.type === 'personal' ? 'outline' :
-                    'secondary'
-                  }>
-                    {event.type}
-                  </Badge>
-                </div>
-              ))}
+                ))}
             </div>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full mt-4"
-              onClick={() => navigate('/calendar')}
+              onClick={() => navigate("/calendar")}
             >
               View Full Calendar
             </Button>
