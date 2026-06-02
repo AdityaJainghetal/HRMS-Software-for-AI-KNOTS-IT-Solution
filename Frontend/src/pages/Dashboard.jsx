@@ -1009,7 +1009,6 @@ const Dashboard = () => {
             style={statCardStyle}
             title="Hours This Week"
             value={hoursThisWeek !== null ? String(hoursThisWeek) : "--"}
-            change="+2.5"
             icon={Clock}
             trend="up"
           />
@@ -1022,7 +1021,7 @@ const Dashboard = () => {
             style={statCardStyle}
             title="Attendance Rate"
             value={attendanceRateUser || "--"}
-            change="+2%"
+          
             icon={UserCheck}
             trend="up"
           />
@@ -1039,6 +1038,8 @@ const Dashboard = () => {
                 ? `₹${Number(currentSalary).toLocaleString()}`
                 : "--"
             }
+             
+               trend="up"
             icon={IndianRupee}
           />
         </div>
@@ -1060,40 +1061,52 @@ const Dashboard = () => {
       {/* Personal Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* My Recent Activity */}
-        <Card style={marginStyle} className="dashboard-card">
+      
+
+
+
+          <Card className="dashboard-card">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <Activity className="w-5 h-5 text-primary" />
-              <span>My Recent Activity</span>
+              <Target className="w-5 h-5 text-primary" />
+              <span>Quick Actions</span>
             </CardTitle>
+            <CardDescription>Frequently used actions</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3 p-3 rounded-lg bg-accent">
-                <UserCheck className="w-5 h-5 text-primary" />
-                <div>
-                  <p className="text-sm font-medium">Marked attendance</p>
-                  <p className="text-xs text-muted-foreground">
-                    Today, 9:15 AM
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-accent transition-colors">
-                <Calendar className="w-5 h-5 text-orange-500" />
-                <div>
-                  <p className="text-sm font-medium">Leave request approved</p>
-                  <p className="text-xs text-muted-foreground">
-                    Yesterday, 3:30 PM
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-accent transition-colors">
-                <DollarSign className="w-5 h-5 text-green-500" />
-                <div>
-                  <p className="text-sm font-medium">Salary credited</p>
-                  <p className="text-xs text-muted-foreground">3 days ago</p>
-                </div>
-              </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Button 
+                variant="outline" 
+                className="h-20 flex-col space-y-2"
+                onClick={() => navigate('/attendance')}
+              >
+                <UserCheck className="w-6 h-6" />
+                <span>Mark Attendance</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                className="h-20 flex-col space-y-2"
+                onClick={() => navigate('/leave-requests')}
+              >
+                <Calendar className="w-6 h-6" />
+                <span>Request Leave</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                className="h-20 flex-col space-y-2"
+                onClick={() => navigate('/payslips')}
+              >
+                <DollarSign className="w-6 h-6" />
+                <span>View Payslip</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                className="h-20 flex-col space-y-2"
+                onClick={() => navigate('/goals')}
+              >
+                <Award className="w-6 h-6" />
+                <span>My Goals</span>
+              </Button>
             </div>
           </CardContent>
         </Card>
