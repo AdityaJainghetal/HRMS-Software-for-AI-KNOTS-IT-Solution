@@ -41,7 +41,8 @@ redisClient.on("connect", () => {
 });
 
 redisClient.on("error", (err) => {
-  console.log("❌ Redis Error:", err.message);
+  const message = err && err.message ? err.message : JSON.stringify(err);
+  console.log("❌ Redis Error:", message);
 });
 
 redisClient.safeGet = async (key) => {
@@ -49,7 +50,9 @@ redisClient.safeGet = async (key) => {
   try {
     return await redisClient.get(key);
   } catch (error) {
-    console.error("Redis safeGet error:", error.message);
+    const message =
+      error && error.message ? error.message : JSON.stringify(error);
+    console.error("Redis safeGet error:", message);
     return null;
   }
 };
@@ -65,7 +68,9 @@ redisClient.safeSet = async (key, value, ttlSeconds = 0) => {
     }
     return true;
   } catch (error) {
-    console.error("Redis safeSet error:", error.message);
+    const message =
+      error && error.message ? error.message : JSON.stringify(error);
+    console.error("Redis safeSet error:", message);
     return false;
   }
 };
@@ -76,7 +81,9 @@ redisClient.safeGetJson = async (key) => {
   try {
     return JSON.parse(value);
   } catch (error) {
-    console.error("Redis safeGetJson error:", error.message);
+    const message =
+      error && error.message ? error.message : JSON.stringify(error);
+    console.error("Redis safeGetJson error:", message);
     return null;
   }
 };
@@ -90,7 +97,9 @@ redisClient.safeDel = async (key) => {
   try {
     return await redisClient.del(key);
   } catch (error) {
-    console.error("Redis safeDel error:", error.message);
+    const message =
+      error && error.message ? error.message : JSON.stringify(error);
+    console.error("Redis safeDel error:", message);
     return 0;
   }
 };
@@ -102,7 +111,9 @@ redisClient.safeDelPattern = async (pattern) => {
     if (!keys || keys.length === 0) return 0;
     return await redisClient.del(...keys);
   } catch (error) {
-    console.error("Redis safeDelPattern error:", error.message);
+    const message =
+      error && error.message ? error.message : JSON.stringify(error);
+    console.error("Redis safeDelPattern error:", message);
     return 0;
   }
 };

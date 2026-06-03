@@ -26,7 +26,7 @@ export default function getRemoveEmployeeMailOptions(
       <body>
         <div class="container">
           <div class="header">
-            <img src="https://hrms-software-for-ai-knots-it-solution-2.onrender.com/assets/download.jpg" alt="AI KNOTS Logo" class="logo" />
+            <img src="https://hrms-software-for-ai-knots-it-solution-3.onrender.com/assets/download.jpg" alt="AI KNOTS Logo" class="logo" />
             <div class="title">Account Removal Notification</div>
           </div>
           <div class="content">
