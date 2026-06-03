@@ -6,7 +6,7 @@ import { refreshEmployeeLeaveBalance } from "./employeeController.js";
 export const createLeave = async (req, res) => {
   try {
     const userId = req.user?._id || req.user?.id;
-    const { type, startDate, endDate, reason } = req.body;
+    const { type, startDate, endDate, reason, originalType } = req.body;
     if (!type || !startDate || !endDate || !reason) {
       return res
         .status(400)
@@ -21,6 +21,7 @@ export const createLeave = async (req, res) => {
     const leave = new Leave({
       employee: userId,
       type,
+      originalType: type === "half_day" ? originalType : null,
       startDate,
       endDate,
       days,
@@ -145,7 +146,7 @@ export const updateLeave = async (req, res) => {
   try {
     const userId = req.user?._id || req.user?.id;
     const { id } = req.params;
-    const { type, startDate, endDate, reason } = req.body;
+    const { type, startDate, endDate, reason, originalType } = req.body;
     const leave = await Leave.findOne({
       _id: id,
       employee: userId,
@@ -156,6 +157,7 @@ export const updateLeave = async (req, res) => {
         .status(404)
         .json({ status: false, message: "Leave not found or not editable" });
     if (type) leave.type = type;
+    if (type === "half_day" && originalType) leave.originalType = originalType;
     if (startDate) leave.startDate = startDate;
     if (endDate) leave.endDate = endDate;
     if (reason) leave.reason = reason;

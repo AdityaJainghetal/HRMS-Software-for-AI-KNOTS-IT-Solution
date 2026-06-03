@@ -1,46 +1,53 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const leaveSchema = new mongoose.Schema({
-  employee: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Employee',
-    required: true
+const leaveSchema = new mongoose.Schema(
+  {
+    employee: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Employee",
+      required: true,
+    },
+    type: {
+      type: String,
+      enum: [
+        "vacation",
+        "sick",
+        "personal",
+        "maternity",
+        "paternity",
+        "bereavement",
+        "casual",
+        "earned",
+        "study",
+        "marriage",
+        "half_day",
+      ],
+      required: true,
+    },
+    originalType: {
+      type: String,
+      enum: ["sick", "personal"],
+      default: null,
+    },
+    startDate: { type: Date, required: true },
+    endDate: { type: Date, required: true },
+    days: { type: Number },
+    reason: String,
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+    },
+    manager: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Employee",
+    },
+    approvalDate: Date,
+    comments: String,
   },
-  type: {
-    type: String,
-    enum: [
-  'vacation',
-  'sick',
-  'personal',
-  'maternity',
-  'paternity',
-  'bereavement',
-  'casual',
-  'earned',
-  'study',
-  'marriage',
-  'half_day',
- 
-],
-    required: true
+  {
+    timestamps: true,
   },
-  startDate: { type: Date, required: true },
-  endDate: { type: Date, required: true },
-  days: { type: Number },
-  reason: String,
-  status: {
-    type: String,
-    enum: ['pending', 'approved', 'rejected'],
-    default: 'pending'
-  },
-  manager: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Employee'
-  },
-  approvalDate: Date,
-  comments: String
-}, {
-  timestamps: true
-});
+);
 
-export default mongoose.model('Leave', leaveSchema);
+export default mongoose.model("Leave", leaveSchema);
