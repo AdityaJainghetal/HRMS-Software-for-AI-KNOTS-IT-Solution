@@ -3665,6 +3665,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../components/ui/alert-dialog";
 import { Label } from "../components/ui/label";
 import { Textarea } from "../components/ui/textarea";
 import {
@@ -3699,6 +3709,9 @@ const LeaveRequests = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showGrantDialog, setShowGrantDialog] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [showApproveConfirm, setShowApproveConfirm] = useState(false);
+  const [pendingReview, setPendingReview] = useState({ id: null, status: "" });
 
   const API_BASE = API_URL;
   const token =
@@ -3776,15 +3789,20 @@ const LeaveRequests = () => {
     return sum;
   }, 0);
 
+  const formatDays = (days) => {
+    if (days == null) return "—";
+    return Number.isInteger(days) ? days : days.toFixed(1);
+  };
+
   const leaveTypeOptions = [
     { value: "Annual Leave", label: "Annual Leave" },
     {
       value: "Sick Leave",
-      label: `Sick Leave (${sickUsed}/${maxSickPersonal})`,
+      label: `Sick Leave (${formatDays(sickUsed)}/${maxSickPersonal} used, ${formatDays(maxSickPersonal - sickUsed)} left)`,
     },
     {
       value: "Personal Leave",
-      label: `Personal Leave (${personalUsed}/${maxSickPersonal})`,
+      label: `Personal Leave (${formatDays(personalUsed)}/${maxSickPersonal} used, ${formatDays(maxSickPersonal - personalUsed)} left)`,
     },
     { value: "Maternity Leave", label: "Maternity Leave" },
     { value: "Paternity Leave", label: "Paternity Leave" },
@@ -3968,11 +3986,6 @@ const LeaveRequests = () => {
   const projectedRemaining =
     currentLeaveBalance != null ? currentLeaveBalance - leaveDays : null;
 
-  const formatDays = (days) => {
-    if (days == null) return "—";
-    return Number.isInteger(days) ? days : days.toFixed(1);
-  };
-
   const normalRequests = leaveRequests.filter(
     (r) => !["Maternity Leave", "Paternity Leave"].includes(r.leaveType),
   );
@@ -3984,7 +3997,7 @@ const LeaveRequests = () => {
   ).length;
   const totalRequests = normalRequests.length;
 
-  const handleAddLeave = async () => {
+  const handleAddLeave = () => {
     if (
       !newLeave.leaveType ||
       !newLeave.startDate ||
@@ -4000,7 +4013,6 @@ const LeaveRequests = () => {
       return;
     }
 
-    // === RESTRICTION CHECKS (existing code) ===
     if (isRestrictedLeave) {
       const used =
         newLeave.leaveType === "Sick Leave" ? sickUsed : personalUsed;
@@ -4031,6 +4043,12 @@ const LeaveRequests = () => {
       return;
     }
 
+    setShowSubmitConfirm(true);
+  };
+
+  const submitLeaveRequest = async () => {
+    setShowSubmitConfirm(false);
+
     try {
       let payload = {
         type: newLeave.isHalfDay
@@ -4041,7 +4059,6 @@ const LeaveRequests = () => {
         reason: newLeave.reason,
       };
 
-      // 🔥 IMPORTANT FIX: Send originalType for half day
       if (newLeave.isHalfDay) {
         if (newLeave.leaveType === "Sick Leave") {
           payload.originalType = "sick";
@@ -4054,7 +4071,6 @@ const LeaveRequests = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // Reset form
       setNewLeave({
         leaveType: "",
         startDate: "",
@@ -4142,7 +4158,17 @@ const LeaveRequests = () => {
     }
   };
 
-  const handleApproveReject = async (id, status) => {
+  const openApproveConfirm = (id, status) => {
+    setPendingReview({ id, status });
+    setShowApproveConfirm(true);
+  };
+
+  const handleApproveReject = async () => {
+    const { id, status } = pendingReview;
+    if (!id || !status) return;
+
+    setShowApproveConfirm(false);
+
     try {
       await axios.patch(
         `${API_BASE}/api/leave/${id}/review`,
@@ -4156,6 +4182,8 @@ const LeaveRequests = () => {
       toast.success(`Leave request ${status} successfully!`);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to update request");
+    } finally {
+      setPendingReview({ id: null, status: "" });
     }
   };
 
@@ -4398,6 +4426,51 @@ const LeaveRequests = () => {
             </Dialog>
           )}
 
+          <AlertDialog
+            open={showSubmitConfirm}
+            onOpenChange={setShowSubmitConfirm}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Submit Leave Request</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Do you want to submit this leave request? Press Yes to confirm
+                  or No to cancel.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>No, Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={submitLeaveRequest}>
+                  Yes, Submit
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <AlertDialog
+            open={showApproveConfirm}
+            onOpenChange={setShowApproveConfirm}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirm Review Action</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {pendingReview.status === "approved"
+                    ? "Approve this leave request?"
+                    : "Reject this leave request?"}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>No, Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleApproveReject}>
+                  {pendingReview.status === "approved"
+                    ? "Yes, Approve"
+                    : "Yes, Reject"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
           {isHR && (
             <Dialog open={showGrantDialog} onOpenChange={setShowGrantDialog}>
               <DialogTrigger asChild>
@@ -4597,8 +4670,31 @@ const LeaveRequests = () => {
                   <Clock className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{sickUsed} / 2</div>
-                  <p className="text-xs text-muted-foreground">used</p>
+                  <div className="text-2xl font-bold">
+                    {formatDays(sickUsed)} / 2
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    used • {formatDays(maxSickPersonal - sickUsed)} left
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]">
+              <Card className="dashboard-card">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Personal Leave
+                  </CardTitle>
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {formatDays(personalUsed)} / 2
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    used • {formatDays(maxSickPersonal - personalUsed)} left
+                  </p>
                 </CardContent>
               </Card>
             </div>
@@ -4728,7 +4824,7 @@ const LeaveRequests = () => {
                           size="sm"
                           className="text-green-600 hover:text-green-700"
                           onClick={() =>
-                            handleApproveReject(request.id, "approved")
+                            openApproveConfirm(request.id, "approved")
                           }
                         >
                           <Check className="w-4 h-4" />
@@ -4738,7 +4834,7 @@ const LeaveRequests = () => {
                           size="sm"
                           className="text-destructive hover:text-destructive"
                           onClick={() =>
-                            handleApproveReject(request.id, "rejected")
+                            openApproveConfirm(request.id, "rejected")
                           }
                         >
                           <X className="w-4 h-4" />
