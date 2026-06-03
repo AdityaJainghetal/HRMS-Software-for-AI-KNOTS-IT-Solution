@@ -640,20 +640,17 @@ const TaskManagement = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          className={
-                            String(task.status || "pending").toLowerCase() ===
-                            "completed"
-                              ? "bg-emerald-500 text-white"
-                              : String(
-                                    task.status || "pending",
-                                  ).toLowerCase() === "inprogress"
-                                ? "bg-blue-500 text-white"
-                                : "bg-amber-500 text-black"
-                          }
-                        >
-                          {String(task.status || "pending").toUpperCase()}
-                        </Badge>
+                       <Badge
+  variant={
+    task.status?.toLowerCase() === "completed"
+      ? "success"
+      : task.status?.toLowerCase() === "inprogress"
+      ? "warning"
+      : "destructive"
+  }
+>
+  {task.status?.toUpperCase()}
+</Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
@@ -885,11 +882,18 @@ const TaskManagement = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="inprogress">In Progress</SelectItem>
+                        <SelectItem value="pending" className="text-red-600">
+                          Pending
+                        </SelectItem>
                         <SelectItem
-                          className="bg-green-600 text-white"
+                          value="inprogress"
+                          className="text-blue-600"
+                        >
+                          In Progress
+                        </SelectItem>
+                        <SelectItem
                           value="completed"
+                          className="text-emerald-600 font-medium"
                         >
                           Completed
                         </SelectItem>
@@ -930,9 +934,12 @@ const TaskManagement = () => {
               Cancel
             </Button>
             <Button
+              variant={
+                editingTask?.status === "completed" ? "default" : "default"
+              }
               className={
                 editingTask?.status === "completed"
-                  ? "bg-emerald-500 hover:bg-emerald-600 text-white"
+                  ? "!bg-emerald-500 !hover:bg-emerald-600 !text-white"
                   : undefined
               }
               onClick={handleUpdateTask}

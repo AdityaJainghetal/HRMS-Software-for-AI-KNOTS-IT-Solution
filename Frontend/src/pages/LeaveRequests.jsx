@@ -3749,18 +3749,32 @@ const LeaveRequests = () => {
     return date >= quarterStart && date <= quarterEnd;
   };
 
-  const sickUsed = leaveRequests.filter(
-    (r) =>
+  const getLeaveDuration = (leave) => {
+    if (leave.rawType === "half_day") return 0.5;
+    const duration = Number(leave.duration);
+    return Number.isFinite(duration) && duration > 0 ? duration : 1;
+  };
+
+  const sickUsed = leaveRequests.reduce((sum, r) => {
+    if (
       r.leaveType === "Sick Leave" &&
       r.status === "approved" &&
-      isWithinCurrentQuarter(r.startDate),
-  ).length;
-  const personalUsed = leaveRequests.filter(
-    (r) =>
+      isWithinCurrentQuarter(r.startDate)
+    ) {
+      return sum + getLeaveDuration(r);
+    }
+    return sum;
+  }, 0);
+  const personalUsed = leaveRequests.reduce((sum, r) => {
+    if (
       r.leaveType === "Personal Leave" &&
       r.status === "approved" &&
-      isWithinCurrentQuarter(r.startDate),
-  ).length;
+      isWithinCurrentQuarter(r.startDate)
+    ) {
+      return sum + getLeaveDuration(r);
+    }
+    return sum;
+  }, 0);
 
   const leaveTypeOptions = [
     { value: "Annual Leave", label: "Annual Leave" },
@@ -3795,7 +3809,12 @@ const LeaveRequests = () => {
     return map[type] || "personal";
   };
 
-  const toFrontendType = (type) => {
+  const toFrontendType = (type, originalType) => {
+    if (type === "half_day") {
+      if (originalType === "sick") return "Sick Leave";
+      if (originalType === "personal") return "Personal Leave";
+      return "Half-Day Leave";
+    }
     const map = {
       vacation: "Annual Leave",
       sick: "Sick Leave",
@@ -3859,10 +3878,12 @@ const LeaveRequests = () => {
     employeeName: l.employee?.name || "",
     profileImage: l.employee?.profileImage || "",
     avatar: l.employee?.avatar || "",
-    leaveType: toFrontendType(l.type),
+    leaveType: toFrontendType(l.type, l.originalType),
     startDate: l.startDate,
     endDate: l.endDate,
     duration: l.days,
+    rawType: l.type,
+    originalType: l.originalType,
     leaveBalance: l.employee?.leaveBalance ?? null,
     reason: l.reason,
     status: l.status,
@@ -3979,6 +4000,7 @@ const LeaveRequests = () => {
       return;
     }
 
+    // === RESTRICTION CHECKS (existing code) ===
     if (isRestrictedLeave) {
       const used =
         newLeave.leaveType === "Sick Leave" ? sickUsed : personalUsed;
@@ -4010,7 +4032,7 @@ const LeaveRequests = () => {
     }
 
     try {
-      const payload = {
+      let payload = {
         type: newLeave.isHalfDay
           ? "half_day"
           : toBackendType(newLeave.leaveType),
@@ -4019,10 +4041,20 @@ const LeaveRequests = () => {
         reason: newLeave.reason,
       };
 
+      // 🔥 IMPORTANT FIX: Send originalType for half day
+      if (newLeave.isHalfDay) {
+        if (newLeave.leaveType === "Sick Leave") {
+          payload.originalType = "sick";
+        } else if (newLeave.leaveType === "Personal Leave") {
+          payload.originalType = "personal";
+        }
+      }
+
       await axios.post(`${API_BASE}/api/leave`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
+      // Reset form
       setNewLeave({
         leaveType: "",
         startDate: "",
@@ -4224,7 +4256,9 @@ const LeaveRequests = () => {
                     </Select>
                   </div>
 
-                  {newLeave.leaveType && (
+                  {["Sick Leave", "Personal Leave"].includes(
+                    newLeave.leaveType,
+                  ) && (
                     <div className="flex items-center space-x-2">
                       <input
                         type="checkbox"
