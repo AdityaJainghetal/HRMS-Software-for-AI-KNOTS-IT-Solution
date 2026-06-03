@@ -6,6 +6,10 @@ import bcrypt from "bcryptjs";
 import transporter from "../Email/nodemailer.js";
 import getAddEmployeeMailOptions from "../Email/addEmployee.js";
 import { recalcDepartmentStats } from "../utils/departmentStats.js";
+import redisClient from "../validation/RedisClient.js";
+
+const EMPLOYEES_CACHE_KEY = "employees:all";
+const EMPLOYEES_CACHE_TTL = 300; // seconds
 
 const toId = (val) => {
   if (!val) return null;
@@ -343,6 +347,8 @@ export const grantLeave = async (req, res) => {
     await refreshEmployeeLeaveBalance(employee);
     const updatedBalance = employee.leaveBalance;
 
+    await redisClient.safeDel(EMPLOYEES_CACHE_KEY);
+
     return res.status(200).json({
       status: true,
       message: `Successfully granted ${grantedDays} day(s) to ${employee.name}`,
@@ -366,6 +372,16 @@ export const grantLeave = async (req, res) => {
 };
 export const getAllEmployees = async (req, res) => {
   try {
+    const cached = await redisClient.safeGetJson(EMPLOYEES_CACHE_KEY);
+    if (cached && Array.isArray(cached) && cached.length > 0) {
+      return res.status(200).json({
+        status: true,
+        message: "Employees fetched successfully",
+        data: cached,
+        source: "redis",
+      });
+    }
+
     const employees = await Employee.find().populate({
       path: "department",
       select: "name",
@@ -403,6 +419,12 @@ export const getAllEmployees = async (req, res) => {
         };
       }),
     );
+    await redisClient.safeSetJson(
+      EMPLOYEES_CACHE_KEY,
+      mapped,
+      EMPLOYEES_CACHE_TTL,
+    );
+
     res.status(200).json({
       status: true,
       message: "Employees fetched successfully",
@@ -554,6 +576,9 @@ export const createEmployee = async (req, res) => {
     await user.save();
     await refreshEmployeeLeaveBalance(user);
 
+    // Invalidate employee list cache because new employee is added
+    await redisClient.safeDel(EMPLOYEES_CACHE_KEY);
+
     // Increment department employee count
     await Department.findByIdAndUpdate(depDoc._id, {
       $inc: { employeeCount: 1 },
@@ -650,6 +675,7 @@ export const updateEmployee = async (req, res) => {
         .status(404)
         .json({ status: false, message: "Employee not found" });
     }
+    await redisClient.safeDel(EMPLOYEES_CACHE_KEY);
     res.status(200).json({
       status: true,
       message: "Employee updated successfully",
@@ -749,6 +775,8 @@ export const editEmployee = async (req, res) => {
         .json({ status: false, message: "Employee not found" });
     }
 
+    await redisClient.safeDel(EMPLOYEES_CACHE_KEY);
+
     // Adjust department counts if changed
     if (oldDeptId && newDeptId && oldDeptId !== newDeptId) {
       await Department.findByIdAndUpdate(oldDeptId, {
@@ -825,6 +853,7 @@ export const deleteEmployee = async (req, res) => {
     );
 
     await Employee.findByIdAndDelete(id);
+    await redisClient.safeDel(EMPLOYEES_CACHE_KEY);
 
     // Decrement department employee count
     if (emp.department?._id) {
