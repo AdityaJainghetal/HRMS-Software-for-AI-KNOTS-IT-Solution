@@ -1,15 +1,6 @@
 import Task from "../models/Task.js";
 import Employee from "../models/Employee.js";
 import transporter from "../Email/nodemailer.js";
-import redisClient from "../validation/RedisClient.js";
-
-const TASKS_CACHE_TTL = 300;
-const TASKS_CACHE_HR_KEY = "tasks:all:hr";
-const TASKS_CACHE_USER_KEY_PREFIX = "tasks:user:";
-const getTaskCacheKey = (userId, role) =>
-  role === "hr"
-    ? TASKS_CACHE_HR_KEY
-    : `${TASKS_CACHE_USER_KEY_PREFIX}${userId}`;
 
 const sendTaskAssignedEmail = async (employee, task, creatorName) => {
   if (!employee?.email) return;
@@ -50,16 +41,6 @@ export const getAllTasks = async (req, res) => {
   try {
     const userId = req.user._id;
     const userRole = req.user.role;
-    const cacheKey = getTaskCacheKey(userId, userRole);
-    const cached = await redisClient.safeGetJson(cacheKey);
-    if (cached && Array.isArray(cached)) {
-      return res.status(200).json({
-        status: true,
-        message: "Tasks fetched successfully",
-        data: cached,
-        source: "redis",
-      });
-    }
 
     let query = {};
 
@@ -74,8 +55,6 @@ export const getAllTasks = async (req, res) => {
       .populate("assignedTo", "name email profileImage")
       .populate("createdBy", "name email")
       .sort({ createdAt: -1 });
-
-    await redisClient.safeSetJson(cacheKey, tasks, TASKS_CACHE_TTL);
 
     res.status(200).json({
       status: true,
@@ -243,14 +222,6 @@ export const createTask = async (req, res) => {
       .populate("assignedTo", "name email profileImage")
       .populate("createdBy", "name email");
 
-    await redisClient.safeDel(TASKS_CACHE_HR_KEY);
-    await redisClient.safeDel(`${TASKS_CACHE_USER_KEY_PREFIX}${createdBy}`);
-    if (finalAssignedTo) {
-      await redisClient.safeDel(
-        `${TASKS_CACHE_USER_KEY_PREFIX}${finalAssignedTo}`,
-      );
-    }
-
     if (populatedTask.assignedTo) {
       await sendTaskAssignedEmail(
         populatedTask.assignedTo,
@@ -384,22 +355,6 @@ export const updateTask = async (req, res) => {
       .populate("createdBy", "name email");
 
     const newAssignedTo = populatedTask.assignedTo?._id?.toString() || null;
-    await redisClient.safeDel(TASKS_CACHE_HR_KEY);
-    if (oldCreatedBy) {
-      await redisClient.safeDel(
-        `${TASKS_CACHE_USER_KEY_PREFIX}${oldCreatedBy}`,
-      );
-    }
-    if (oldAssignedTo) {
-      await redisClient.safeDel(
-        `${TASKS_CACHE_USER_KEY_PREFIX}${oldAssignedTo}`,
-      );
-    }
-    if (newAssignedTo) {
-      await redisClient.safeDel(
-        `${TASKS_CACHE_USER_KEY_PREFIX}${newAssignedTo}`,
-      );
-    }
 
     // Send email if task is reassigned
     if (
@@ -446,18 +401,6 @@ export const deleteTask = async (req, res) => {
         status: false,
         message: "Task not found",
       });
-    }
-
-    await redisClient.safeDel(TASKS_CACHE_HR_KEY);
-    if (task.createdBy) {
-      await redisClient.safeDel(
-        `${TASKS_CACHE_USER_KEY_PREFIX}${task.createdBy.toString()}`,
-      );
-    }
-    if (task.assignedTo) {
-      await redisClient.safeDel(
-        `${TASKS_CACHE_USER_KEY_PREFIX}${task.assignedTo.toString()}`,
-      );
     }
 
     res.status(200).json({
@@ -512,18 +455,6 @@ export const updateTaskStatus = async (req, res) => {
     const populatedTask = await Task.findById(updatedTask._id)
       .populate("assignedTo", "name email profileImage")
       .populate("createdBy", "name email");
-
-    await redisClient.safeDel(TASKS_CACHE_HR_KEY);
-    if (task.createdBy) {
-      await redisClient.safeDel(
-        `${TASKS_CACHE_USER_KEY_PREFIX}${task.createdBy.toString()}`,
-      );
-    }
-    if (task.assignedTo) {
-      await redisClient.safeDel(
-        `${TASKS_CACHE_USER_KEY_PREFIX}${task.assignedTo.toString()}`,
-      );
-    }
 
     res.status(200).json({
       status: true,

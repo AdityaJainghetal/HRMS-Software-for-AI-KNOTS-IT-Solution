@@ -317,11 +317,6 @@ import xlsx from "xlsx";
 
 import csv from "csv-parser";
 import fs from "fs";
-import redisClient from "../validation/RedisClient.js";
-
-const ATTENDANCE_CACHE_KEY = "attendance:all";
-const ATTENDANCE_CACHE_TTL = 300;
-const getAttendanceUserCacheKey = (id) => `attendance:user:${id}`;
 
 // Map DB doc to frontend shape used in Attendance.jsx
 const mapRecord = (rec, empDoc) => {
@@ -541,25 +536,9 @@ export const getAttendanceByDate = async (req, res) => {
 
 export const getAllAttendance = async (req, res) => {
   try {
-    const cached = await redisClient.safeGetJson(ATTENDANCE_CACHE_KEY);
-    if (cached && Array.isArray(cached)) {
-      return res.status(200).json({
-        success: true,
-        count: cached.length,
-        data: cached,
-        source: "redis",
-      });
-    }
-
     const attendance = await Attendance.find()
-      .populate("employee", "name") // 👈 employee ka name milega
+      .populate("employee", "name")
       .sort({ date: -1 });
-
-    await redisClient.safeSetJson(
-      ATTENDANCE_CACHE_KEY,
-      attendance,
-      ATTENDANCE_CACHE_TTL,
-    );
 
     res.status(200).json({
       success: true,
@@ -585,21 +564,9 @@ export const getAttendanceByName = async (req, res) => {
       return res.status(404).json({ message: "Employee not found" });
     }
 
-    const cacheKey = getAttendanceUserCacheKey(employee._id);
-    const cached = await redisClient.safeGetJson(cacheKey);
-    if (cached && Array.isArray(cached)) {
-      return res.status(200).json({
-        success: true,
-        data: cached,
-        source: "redis",
-      });
-    }
-
     const attendance = await Attendance.find({
       employee: employee._id,
     }).sort({ date: -1 });
-
-    await redisClient.safeSetJson(cacheKey, attendance, ATTENDANCE_CACHE_TTL);
 
     res.status(200).json({
       success: true,
@@ -787,9 +754,6 @@ export const uploadAttendance = async (req, res) => {
           if (fs.existsSync(req.file.path)) {
             fs.unlinkSync(req.file.path);
           }
-
-          await redisClient.safeDel(ATTENDANCE_CACHE_KEY);
-          await redisClient.safeDel(getAttendanceUserCacheKey(employee._id));
 
           return res.status(200).json({
             success: true,
@@ -1704,8 +1668,6 @@ export const checkIn = async (req, res) => {
       if (location) rec.location = location;
     }
     await rec.save();
-    await redisClient.safeDel(ATTENDANCE_CACHE_KEY);
-    await redisClient.safeDel(getAttendanceUserCacheKey(userId));
     // server-side activity log: create an activity for check-in
     try {
       const a = new Activity({
@@ -1763,8 +1725,6 @@ export const checkOut = async (req, res) => {
         .json({ status: false, message: "Already checked out for today." });
     rec.checkOut = time || currentTime();
     await rec.save();
-    await redisClient.safeDel(ATTENDANCE_CACHE_KEY);
-    await redisClient.safeDel(getAttendanceUserCacheKey(userId));
     // server-side activity log: create an activity for check-out
     try {
       const a = new Activity({
@@ -1823,8 +1783,6 @@ export const upsert = async (req, res) => {
     if (status !== undefined) rec.status = normalizeAttendanceStatus(status);
     if (location !== undefined) rec.location = location;
     await rec.save();
-    await redisClient.safeDel(ATTENDANCE_CACHE_KEY);
-    await redisClient.safeDel(getAttendanceUserCacheKey(emp._id));
 
     // Update daily counters from scratch for that day (safe approach)
     const dayRecs = await Attendance.find({ date: { $gte: start, $lte: end } });

@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API_BASE =
-  "https://hrms-software-for-ai-knots-it-solution-3.onrender.com";
+  "https://hrms-software-for-ai-knots-it-solution-2.onrender.com";
 
 export const postActivity = async ({
   token,
