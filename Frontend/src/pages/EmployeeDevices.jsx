@@ -1,34 +1,47 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Badge } from '../components/ui/badge';
-import { Button } from '../components/ui/button';
-import { useAuth } from '../contexts/AuthContext';
-import axios from 'axios';
-
-const API_BASE = import.meta.env.VITE_API_URL || '';
+import { useState, useEffect } from "react";
 import {
-  Laptop, Tablet, Smartphone, Monitor, Keyboard, Mouse,
-  Calendar, MapPin, User, Clock
-} from 'lucide-react';
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import { Badge } from "../components/ui/badge";
+import { Button } from "../components/ui/button";
+import { useAuth } from "../contexts/AuthContext";
+import axios from "axios";
+
+const API_BASE = import.meta.env.VITE_API_URL || "";
+import {
+  Laptop,
+  Tablet,
+  Smartphone,
+  Monitor,
+  Keyboard,
+  Mouse,
+  Calendar,
+  MapPin,
+  User,
+  Clock,
+} from "lucide-react";
 
 const EmployeeDevices = () => {
-
   const wrapperStyle = {
     paddingBottom: "20px",
-    marginTop: "20px"
+    marginTop: "20px",
   };
 
-  const statCardsContainerStyle = {    
+  const statCardsContainerStyle = {
     alignItems: "stretch",
   };
 
   const marginStyle = {
-    marginBottom: "10px"
+    marginBottom: "10px",
   };
 
   const button = {
-    width: "200px"
-  }
+    width: "200px",
+  };
   const { user } = useAuth();
 
   // Live device state for current employee (will replace dummy data)
@@ -37,15 +50,15 @@ const EmployeeDevices = () => {
 
   const getDeviceIcon = (type) => {
     switch (type) {
-      case 'laptop':
+      case "laptop":
         return Laptop;
-      case 'tablet':
+      case "tablet":
         return Tablet;
-      case 'phone':
+      case "phone":
         return Smartphone;
-      case 'monitor':
+      case "monitor":
         return Monitor;
-      case 'accessory':
+      case "accessory":
         return Keyboard;
       default:
         return Laptop;
@@ -54,52 +67,65 @@ const EmployeeDevices = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'active':
-        return 'default';
-      case 'maintenance':
-        return 'warning';
-      case 'returned':
-        return 'secondary';
+      case "active":
+        return "default";
+      case "maintenance":
+        return "warning";
+      case "returned":
+        return "secondary";
       default:
-        return 'outline';
+        return "outline";
     }
   };
 
   const getConditionColor = (condition) => {
     switch (condition) {
-      case 'excellent':
-        return 'bg-success text-success-foreground';
-      case 'good':
-        return 'bg-primary text-primary-foreground';
-      case 'fair':
-        return 'bg-warning text-warning-foreground';
-      case 'poor':
-        return 'bg-destructive text-destructive-foreground';
+      case "excellent":
+        return "bg-success text-success-foreground";
+      case "good":
+        return "bg-primary text-primary-foreground";
+      case "fair":
+        return "bg-warning text-warning-foreground";
+      case "poor":
+        return "bg-destructive text-destructive-foreground";
       default:
-        return 'bg-secondary text-secondary-foreground';
+        return "bg-secondary text-secondary-foreground";
     }
   };
 
   // Normalizer: convert server device shape into the UI shape used here
   const normalizeDevice = (d) => {
     const id = d._id || d.id || d.deviceId || null;
-    const name = d.name || d.deviceName || d.raw?.name || '';
-    const type = d.type || d.deviceType || '';
-    const model = d.model || '';
-    const serialNumber = d.serialNumber || d.serial || '';
-    const assignedDate = d.assignedDate || d.assignedAt || d.assignedOn || d.assigned || null;
-    const status = d.status || 'active';
-    const location = d.location || '';
-    const condition = d.condition || 'good';
-    return { id, name, type, model, serialNumber, assignedDate, status, location, condition, raw: d };
+    const name = d.name || d.deviceName || d.raw?.name || "";
+    const type = d.type || d.deviceType || "";
+    const model = d.model || "";
+    const serialNumber = d.serialNumber || d.serial || "";
+    const assignedDate =
+      d.assignedDate || d.assignedAt || d.assignedOn || d.assigned || null;
+    const status = d.status || "active";
+    const location = d.location || "";
+    const condition = d.condition || "good";
+    return {
+      id,
+      name,
+      type,
+      model,
+      serialNumber,
+      assignedDate,
+      status,
+      location,
+      condition,
+      raw: d,
+    };
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem("authToken");
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     setLoading(true);
-    axios.get(`${API_BASE}/api/devices/me`, { headers })
-      .then(res => {
+    axios
+      .get(`${API_BASE}/api/devices/me`, { headers })
+      .then((res) => {
         const payload = res.data?.data || res.data;
         if (Array.isArray(payload)) {
           setMyDevices(payload.map(normalizeDevice));
@@ -109,8 +135,8 @@ const EmployeeDevices = () => {
           setMyDevices([]);
         }
       })
-      .catch(err => {
-        console.error('Failed to load employee devices', err);
+      .catch((err) => {
+        console.error("Failed to load employee devices", err);
         // keep an empty array as fallback
         setMyDevices([]);
       })
@@ -124,7 +150,9 @@ const EmployeeDevices = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold mb-2">My Company Devices</h1>
-            <p className="text-blue-100">Devices assigned to you by the company</p>
+            <p className="text-blue-100">
+              Devices assigned to you by the company
+            </p>
           </div>
           <div className="hidden md:block">
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
@@ -137,7 +165,10 @@ const EmployeeDevices = () => {
 
       {/* Summary Cards */}
       <div style={wrapperStyle} className="flex flex-wrap gap-4 mb-5">
-        <div style={statCardsContainerStyle} className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]">
+        <div
+          style={statCardsContainerStyle}
+          className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]"
+        >
           <Card className="dashboard-card">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
@@ -145,14 +176,19 @@ const EmployeeDevices = () => {
                   <Laptop className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{myDevices.filter(d => d.type === 'laptop').length}</p>
+                  <p className="text-2xl font-bold">
+                    {myDevices.filter((d) => d.type === "laptop").length}
+                  </p>
                   <p className="text-sm text-muted-foreground">Laptops</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
-        <div style={statCardsContainerStyle} className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]">
+        <div
+          style={statCardsContainerStyle}
+          className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]"
+        >
           <Card className="dashboard-card">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
@@ -160,14 +196,19 @@ const EmployeeDevices = () => {
                   <Tablet className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{myDevices.filter(d => d.type === 'tablet').length}</p>
+                  <p className="text-2xl font-bold">
+                    {myDevices.filter((d) => d.type === "tablet").length}
+                  </p>
                   <p className="text-sm text-muted-foreground">Tablets</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
-        <div style={statCardsContainerStyle} className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]">
+        <div
+          style={statCardsContainerStyle}
+          className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]"
+        >
           <Card className="dashboard-card">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
@@ -175,14 +216,19 @@ const EmployeeDevices = () => {
                   <Smartphone className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{myDevices.filter(d => d.type === 'phone').length}</p>
+                  <p className="text-2xl font-bold">
+                    {myDevices.filter((d) => d.type === "phone").length}
+                  </p>
                   <p className="text-sm text-muted-foreground">Phones</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
-        <div style={statCardsContainerStyle} className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]">
+        <div
+          style={statCardsContainerStyle}
+          className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]"
+        >
           <Card className="dashboard-card">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
@@ -190,7 +236,13 @@ const EmployeeDevices = () => {
                   <Monitor className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{myDevices.filter(d => ['monitor', 'accessory'].includes(d.type)).length}</p>
+                  <p className="text-2xl font-bold">
+                    {
+                      myDevices.filter((d) =>
+                        ["monitor", "accessory"].includes(d.type),
+                      ).length
+                    }
+                  </p>
                   <p className="text-sm text-muted-foreground">Accessories</p>
                 </div>
               </div>
@@ -215,8 +267,8 @@ const EmployeeDevices = () => {
             {myDevices.map((device) => {
               const DeviceIcon = getDeviceIcon(device.type);
               return (
-                <div 
-                  key={device.id} 
+                <div
+                  key={device.id}
                   className="flex items-center justify-between p-4 rounded-lg border hover:shadow-md transition-shadow"
                 >
                   <div className="flex items-center space-x-4">
@@ -229,7 +281,10 @@ const EmployeeDevices = () => {
                       <div className="flex items-center space-x-4 mt-2 text-sm text-muted-foreground">
                         <div className="flex items-center space-x-1">
                           <Calendar className="w-4 h-4" />
-                          <span>Assigned: {new Date(device.assignedDate).toLocaleDateString()}</span>
+                          <span>
+                            Assigned:{" "}
+                            {new Date(device.assignedDate).toLocaleDateString()}
+                          </span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <MapPin className="w-4 h-4" />
@@ -239,9 +294,7 @@ const EmployeeDevices = () => {
                     </div>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <Badge 
-                      className={getConditionColor(device.condition)}
-                    >
+                    <Badge className={getConditionColor(device.condition)}>
                       {device.condition}
                     </Badge>
                     <Badge variant={getStatusColor(device.status)}>
@@ -273,61 +326,118 @@ const EmployeeDevices = () => {
                 // build timeline events from myDevices
                 if (loading) {
                   return (
-                    <div className="text-sm text-muted-foreground">Loading history...</div>
+                    <div className="text-sm text-muted-foreground">
+                      Loading history...
+                    </div>
                   );
                 }
 
-                const userId = user?._id || user?.id || user?.employeeId || user?.email;
+                const userId =
+                  user?._id || user?.id || user?.employeeId || user?.email;
                 const events = [];
 
-                myDevices.forEach(device => {
-                  const devName = device.name || device.raw?.name || 'Device';
+                myDevices.forEach((device) => {
+                  const devName = device.name || device.raw?.name || "Device";
                   // prefer server-side history array if present
-                  const hist = (device.raw && Array.isArray(device.raw.history)) ? device.raw.history : [];
+                  const hist =
+                    device.raw && Array.isArray(device.raw.history)
+                      ? device.raw.history
+                      : [];
                   if (hist.length) {
-                    hist.forEach(h => {
+                    hist.forEach((h) => {
                       // h may have employee as id or populated object
-                      const hEmployeeId = (typeof h.employee === 'string') ? h.employee : (h.employee && (h.employee._id || h.employee.id || h.employee.email));
+                      const hEmployeeId =
+                        typeof h.employee === "string"
+                          ? h.employee
+                          : h.employee &&
+                            (h.employee._id ||
+                              h.employee.id ||
+                              h.employee.email);
                       // match by id or email
-                      const matched = userId && hEmployeeId && (String(hEmployeeId) === String(userId) || String(hEmployeeId) === String(user?.email) || String(userId) === String(user?.email));
+                      const matched =
+                        userId &&
+                        hEmployeeId &&
+                        (String(hEmployeeId) === String(userId) ||
+                          String(hEmployeeId) === String(user?.email) ||
+                          String(userId) === String(user?.email));
                       if (matched) {
                         events.push({
                           device: devName,
-                          action: h.action || h.type || 'updated',
-                          date: h.date || h.at || h.createdAt || h.timestamp || null,
-                          notes: h.notes || h.locationNotes || '',
-                          location: h.location || ''
+                          action: h.action || h.type || "updated",
+                          date:
+                            h.date ||
+                            h.at ||
+                            h.createdAt ||
+                            h.timestamp ||
+                            null,
+                          notes: h.notes || h.locationNotes || "",
+                          location: h.location || "",
                         });
                       }
                     });
                   } else {
                     // fallback: include assignedDate for this device if assigned to current user
-                    const assignedTo = device.raw && (device.raw.assignedTo || device.raw.employeeId || device.raw.employee) ;
-                    const assignedId = (typeof assignedTo === 'string') ? assignedTo : (assignedTo && (assignedTo._id || assignedTo.id || assignedTo.email));
-                    const isAssignedToUser = userId && assignedId && (String(assignedId) === String(userId) || String(assignedId) === String(user?.email));
+                    const assignedTo =
+                      device.raw &&
+                      (device.raw.assignedTo ||
+                        device.raw.employeeId ||
+                        device.raw.employee);
+                    const assignedId =
+                      typeof assignedTo === "string"
+                        ? assignedTo
+                        : assignedTo &&
+                          (assignedTo._id || assignedTo.id || assignedTo.email);
+                    const isAssignedToUser =
+                      userId &&
+                      assignedId &&
+                      (String(assignedId) === String(userId) ||
+                        String(assignedId) === String(user?.email));
                     if (isAssignedToUser && device.assignedDate) {
-                      events.push({ device: devName, action: 'assigned', date: device.assignedDate, notes: '', location: device.location });
+                      events.push({
+                        device: devName,
+                        action: "assigned",
+                        date: device.assignedDate,
+                        notes: "",
+                        location: device.location,
+                      });
                     }
                   }
                 });
 
                 if (!events.length) {
-                  return (<div className="text-sm text-muted-foreground">No device history available.</div>);
+                  return (
+                    <div className="text-sm text-muted-foreground">
+                      No device history available.
+                    </div>
+                  );
                 }
 
                 // sort by date descending
-                events.sort((a,b) => {
+                events.sort((a, b) => {
                   const da = a.date ? new Date(a.date).getTime() : 0;
                   const db = b.date ? new Date(b.date).getTime() : 0;
                   return db - da;
                 });
 
                 return events.map((ev, idx) => (
-                  <div key={`${ev.device}-${idx}`} className={`flex items-center space-x-4 p-3 rounded-lg ${idx === 0 ? 'bg-accent/50' : ''}`}>
-                    <div className={`w-2 h-2 rounded-full ${idx === 0 ? 'bg-primary' : 'bg-muted-foreground'}`}></div>
+                  <div
+                    key={`${ev.device}-${idx}`}
+                    className={`flex items-center space-x-4 p-3 rounded-lg ${idx === 0 ? "bg-accent/50" : ""}`}
+                  >
+                    <div
+                      className={`w-2 h-2 rounded-full ${idx === 0 ? "bg-primary" : "bg-muted-foreground"}`}
+                    ></div>
                     <div className="flex-1">
-                      <p className="font-medium">{ev.device} &mdash; {ev.action}</p>
-                      <p className="text-sm text-muted-foreground">{ev.date ? new Date(ev.date).toLocaleDateString() : 'Unknown date'}{ev.location ? ` — ${ev.location}` : ''}{ev.notes ? ` • ${ev.notes}` : ''}</p>
+                      <p className="font-medium">
+                        {ev.device} &mdash; {ev.action}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {ev.date
+                          ? new Date(ev.date).toLocaleDateString()
+                          : "Unknown date"}
+                        {ev.location ? ` — ${ev.location}` : ""}
+                        {ev.notes ? ` • ${ev.notes}` : ""}
+                      </p>
                     </div>
                   </div>
                 ));
@@ -347,13 +457,13 @@ const EmployeeDevices = () => {
           <CardContent>
             <div className="space-y-3">
               <p className="text-sm">
-                <strong>IT Support:</strong> getachewhabtamu29@gmail.com
+                <strong>IT Support:</strong> support@atlaknots.com
               </p>
               <p className="text-sm">
-                <strong>Phone:</strong> +2519-2469-9554
+                <strong>Phone:</strong> +91 78696 36070
               </p>
               <p className="text-sm">
-                <strong>Office Hours:</strong> Monday - Friday, 9:00 AM - 6:00 PM
+                <strong>Office Hours:</strong> Monday - Saturday, 10:00 AM - 7:00 PM
               </p>
             </div>
           </CardContent>
