@@ -1416,7 +1416,7 @@ const TaskManagement = () => {
               </Button>
 
               {showNotifications && (
-                <div className="absolute right-0 mt-2 w-96 bg-slate-900 bg-opacity-100 border border-gray-700 rounded-xl shadow-2xl z-50 max-h-[85vh] overflow-hidden">
+                <div className="absolute right-0 mt-2 w-[900px] max-w-[90vw] bg-slate-900 bg-opacity-100 border border-gray-700 rounded-xl shadow-2xl z-50 max-h-[85vh] overflow-hidden">
                   <div className="p-4 border-b border-gray-700 flex items-center justify-between sticky top-0 bg-slate-900 bg-opacity-100">
                     <h2 className="text-xl font-semibold">Notifications</h2>
                     <span
@@ -1441,7 +1441,7 @@ const TaskManagement = () => {
                       notifications.map((notif) => (
                         <div
                           key={notif.id}
-                          className={`p-4 border-b border-gray-800 cursor-pointer flex gap-3 ${notif.isUnread ? "bg-blue-800 text-blue-300 hover:bg-blue-700" : "bg-slate-800 text-slate-100 hover:bg-slate-700"}`}
+                          className={`p-4 border-b border-gray-800 cursor-pointer flex gap-2 ${notif.isUnread ? "bg-blue-800 text-blue-300 hover:bg-blue-700" : "bg-slate-800 text-slate-100 hover:bg-slate-700"}`}
                           onClick={() => {
                             // Mark clicked notification as read but keep panel open and visible
                             setNotifications((prev) =>
@@ -1454,16 +1454,16 @@ const TaskManagement = () => {
                             toast.info(`Opened: ${notif.message}`);
                           }}
                         >
-                          <Avatar className="w-10 h-10">
+                          <Avatar className="w-8 h-8">
                             <AvatarFallback className="bg-gray-700 text-white">
                               {notif.avatar}
                             </AvatarFallback>
                           </Avatar>
 
                           <div className="flex-1 text-sm">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3 flex-wrap">
                               <span
-                                className={`font-medium ${notif.isUnread ? "text-blue-300" : "text-blue-400"}`}
+                                className={`font-medium break-words ${notif.isUnread ? "text-blue-300" : "text-blue-400"}`}
                               >
                                 {notif.title}
                               </span>

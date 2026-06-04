@@ -56,7 +56,7 @@ export const register = async (req, res) => {
     const token = jwt.sign(
       { _id: user._id, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: "30d" }
     );
 
     transporter.sendMail(
@@ -124,7 +124,7 @@ export const login = async (req, res) => {
       { _id: user._id, role: user.role },
       process.env.JWT_SECRET,
       {
-        expiresIn: "7d",
+        expiresIn: "30d",
       }
     );
 
