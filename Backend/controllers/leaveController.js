@@ -13,11 +13,13 @@ export const createLeave = async (req, res) => {
         .json({ status: false, message: "All fields are required." });
     }
     const days =
-      type === "half_day"
+      type === "half_day" && ["sick", "personal"].includes(originalType)
         ? 0.5
-        : Math.ceil(
-            (new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24),
-          ) + 1;
+        : type === "half_day"
+          ? 1
+          : Math.ceil(
+              (new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24),
+            ) + 1;
     const leave = new Leave({
       employee: userId,
       type,
@@ -162,12 +164,15 @@ export const updateLeave = async (req, res) => {
     if (endDate) leave.endDate = endDate;
     if (reason) leave.reason = reason;
     leave.days =
-      leave.type === "half_day"
+      leave.type === "half_day" &&
+      ["sick", "personal"].includes(leave.originalType)
         ? 0.5
-        : Math.ceil(
-            (new Date(leave.endDate) - new Date(leave.startDate)) /
-              (1000 * 60 * 60 * 24),
-          ) + 1;
+        : leave.type === "half_day"
+          ? 1
+          : Math.ceil(
+              (new Date(leave.endDate) - new Date(leave.startDate)) /
+                (1000 * 60 * 60 * 24),
+            ) + 1;
     await leave.save();
     const populated = await leave.populate([
       { path: "employee", select: "name employeeId profileImage leaveBalance" },

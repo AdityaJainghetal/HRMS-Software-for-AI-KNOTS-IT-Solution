@@ -17,13 +17,15 @@ const Attendance = () => {
   // HR Only States
   const [employees, setEmployees] = useState([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
-  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
   // Data States
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchingEmployees, setFetchingEmployees] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 30;
 
   const getAuthToken = () => localStorage.getItem("authToken");
 
@@ -117,7 +119,7 @@ const Attendance = () => {
       if (isHR) {
         const params = {};
         if (selectedEmployeeId) params.employeeId = selectedEmployeeId;
-        if (selectedDate) params.date = selectedDate;
+        if (selectedMonth) params.month = selectedMonth;
 
         res = await axios.get(
           "https://hrms-software-for-ai-knots-it-solution-1.onrender.com/api/attendance/datefilter",
@@ -127,10 +129,16 @@ const Attendance = () => {
           },
         );
       } else {
+        const params = {};
+        if (selectedMonth) {
+          params.month = selectedMonth;
+        } else {
+          params.limit = 31;
+        }
         res = await axios.get(
           "https://hrms-software-for-ai-knots-it-solution-1.onrender.com/api/attendance/me",
           {
-            params: { limit: 31 },
+            params,
             ...config,
           },
         );
@@ -156,12 +164,15 @@ const Attendance = () => {
     fetchAttendance();
   }, [isHR]);
 
-  // Re-fetch when HR filters change
+  // Re-fetch when filters change
   useEffect(() => {
-    if (isHR) {
-      fetchAttendance();
-    }
-  }, [selectedEmployeeId, selectedDate, isHR]);
+    fetchAttendance();
+  }, [selectedEmployeeId, selectedMonth, isHR]);
+
+  // Reset page when filters/search change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedEmployeeId, selectedMonth, searchTerm, isHR]);
 
   // Filter data for search
   const filteredData = data.filter((item) => {
@@ -169,6 +180,18 @@ const Attendance = () => {
     const empName = (item.employee?.name || "").toLowerCase();
     return empName.includes(searchTerm.toLowerCase().trim());
   });
+
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / PAGE_SIZE));
+  const paginatedData = filteredData.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const statusLegend = [
     { code: "P", meaning: "Present" },
@@ -366,12 +389,12 @@ const Attendance = () => {
                     fontWeight: "bold",
                   }}
                 >
-                  Select Date:
+                  Select Month:
                 </label>
                 <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
                   style={{
                     padding: "10px",
                     borderRadius: "5px",
@@ -409,7 +432,7 @@ const Attendance = () => {
               <button
                 onClick={() => {
                   setSelectedEmployeeId("");
-                  setSelectedDate("");
+                  setSelectedMonth("");
                   setSearchTerm("");
                 }}
                 style={{
@@ -529,126 +552,333 @@ const Attendance = () => {
 
           {/* Attendance List */}
           <div>
-            <h2>Attendance Records ({filteredData.length})</h2>
+            <h2>
+              Attendance Records ({filteredData.length})
+              {filteredData.length > PAGE_SIZE && (
+                <span style={{ fontSize: "14px", color: "#666" }}>
+                  {" "}
+                  • Showing {Math.min(PAGE_SIZE, filteredData.length)} per page
+                </span>
+              )}
+            </h2>
 
             {loading ? (
               <p>Loading...</p>
             ) : filteredData.length === 0 ? (
               <p>No records found.</p>
             ) : (
-              <table
-                border="1"
-                cellPadding="12"
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  textAlign: "left",
-                }}
-              >
-                <thead>
-                  <tr style={{ backgroundColor: "#f4f4f4" }}>
-                    <th>Name</th>
-                    <th>Date</th>
-                    <th>Status</th>
-                    <th>Check In</th>
-                    <th>Check Out</th>
-                    <th>Total Hours</th>
-                    <th>Location</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredData.map((item, index) => (
-                    <tr key={item._id || index}>
-                      <td>
-                        <strong>{item.employee?.name || "N/A"}</strong>
-                      </td>
-                      <td>{formatFullDate(item.date)}</td>
-                      <td>
-                        <select
-                          value={item.status || ""}
-                          onChange={(e) =>
-                            handleStatusChange(item, e.target.value)
-                          }
-                          disabled={statusUpdatingId === item._id}
-                          style={{
-                            padding: "8px",
-                            borderRadius: "5px",
-                            border: "1px solid #ccc",
-                            minWidth: "140px",
-                          }}
-                        >
-                          {statusOptions.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>{item.checkIn || "—"}</td>
-                      <td>{item.checkOut || "—"}</td>
-                      <td>{item.totalHours || "—"}</td>
-                      <td>{item.location || "—"}</td>
+              <>
+                <table
+                  border="1"
+                  cellPadding="12"
+                  style={{
+                    width: "100%",
+                    borderCollapse: "collapse",
+                    textAlign: "left",
+                  }}
+                >
+                  <thead>
+                    <tr style={{ backgroundColor: "#f4f4f4" }}>
+                      <th>Name</th>
+                      <th>Date</th>
+                      <th>Status</th>
+                      <th>Check In</th>
+                      <th>Check Out</th>
+                      <th>Total Hours</th>
+                      <th>Location</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {paginatedData.map((item, index) => (
+                      <tr key={item._id || index}>
+                        <td>
+                          <strong>{item.employee?.name || "N/A"}</strong>
+                        </td>
+                        <td>{formatFullDate(item.date)}</td>
+                        <td>
+                          <select
+                            value={item.status || ""}
+                            onChange={(e) =>
+                              handleStatusChange(item, e.target.value)
+                            }
+                            disabled={statusUpdatingId === item._id}
+                            style={{
+                              padding: "8px",
+                              borderRadius: "5px",
+                              border: "1px solid #ccc",
+                              minWidth: "140px",
+                            }}
+                          >
+                            {statusOptions.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td>{item.checkIn || "—"}</td>
+                        <td>{item.checkOut || "—"}</td>
+                        <td>{item.totalHours || "—"}</td>
+                        <td>{item.location || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {totalPages > 1 && (
+                  <div
+                    style={{
+                      marginTop: "15px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: "10px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <span style={{ color: "#666" }}>
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button
+                        onClick={() =>
+                          setCurrentPage((prev) => Math.max(prev - 1, 1))
+                        }
+                        disabled={currentPage === 1}
+                        style={{
+                          padding: "8px 12px",
+                          borderRadius: "5px",
+                          border: "1px solid #ccc",
+                          backgroundColor:
+                            currentPage === 1 ? "#f1f1f1" : "white",
+                          cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                        }}
+                      >
+                        Previous
+                      </button>
+                      <button
+                        onClick={() =>
+                          setCurrentPage((prev) =>
+                            Math.min(prev + 1, totalPages),
+                          )
+                        }
+                        disabled={currentPage === totalPages}
+                        style={{
+                          padding: "8px 12px",
+                          borderRadius: "5px",
+                          border: "1px solid #ccc",
+                          backgroundColor:
+                            currentPage === totalPages ? "#f1f1f1" : "white",
+                          cursor:
+                            currentPage === totalPages
+                              ? "not-allowed"
+                              : "pointer",
+                        }}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </>
       ) : (
         // ==================== EMPLOYEE INTERFACE ====================
         <>
-          <h1>My Attendance</h1>
-          <div style={{ marginBottom: "30px" }}>
-            <p style={{ fontSize: "16px", color: "#666" }}>
-              Viewing attendance records for: <strong>{user?.name}</strong>
-            </p>
+          <div className="attendance-header" style={{ marginBottom: "20px" }}>
+            <h1>My Attendance</h1>
+          </div>
+          <div
+            style={{
+              marginBottom: "30px",
+              padding: "15px",
+              backgroundColor: "#f8f9fa",
+              border: "1px solid #ddd",
+              borderRadius: "8px",
+            }}
+          >
+            <h3>Attendance Status Legend</h3>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                gap: "8px 20px",
+              }}
+            >
+              {statusLegend.map((item, index) => (
+                <div key={index} style={{ display: "flex", gap: "10px" }}>
+                  <strong style={{ color: "#007bff", minWidth: "50px" }}>
+                    {item.code}
+                  </strong>
+                  <span>: {item.meaning}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div
+            style={{
+              marginBottom: "30px",
+              padding: "20px",
+              border: "1px solid #ddd",
+              borderRadius: "8px",
+              backgroundColor: "#fff",
+            }}
+          >
+            <h2>Filter by Month</h2>
+            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "5px",
+                    fontWeight: "bold",
+                  }}
+                >
+                  Select Month:
+                </label>
+                <input
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  style={{
+                    padding: "10px",
+                    borderRadius: "5px",
+                    border: "1px solid #ccc",
+                    fontSize: "16px",
+                    width: "220px",
+                  }}
+                />
+              </div>
+              <button
+                onClick={() => setSelectedMonth("")}
+                style={{
+                  padding: "10px 20px",
+                  backgroundColor: "#6c757d",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                  height: "45px",
+                }}
+              >
+                Clear Month
+              </button>
+            </div>
           </div>
 
           <div>
-            <h2>My Attendance Records ({filteredData.length})</h2>
+            <h2>
+              My Attendance Records ({filteredData.length})
+              {filteredData.length > PAGE_SIZE && (
+                <span style={{ fontSize: "14px", color: "#666" }}>
+                  {" "}
+                  • Showing {Math.min(PAGE_SIZE, filteredData.length)} per page
+                </span>
+              )}
+            </h2>
 
             {loading ? (
               <p>Loading...</p>
             ) : filteredData.length === 0 ? (
               <p>No attendance records found.</p>
             ) : (
-              <table
-                border="1"
-                cellPadding="12"
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  textAlign: "left",
-                }}
-              >
-                <thead>
-                  <tr style={{ backgroundColor: "#f4f4f4" }}>
-                    <th>Date</th>
-                    <th>Status</th>
-                    <th>Check In</th>
-                    <th>Check Out</th>
-                    <th>Total Hours</th>
-                    <th>Location</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredData.map((item, index) => (
-                    <tr key={item._id || index}>
-                      <td>{formatFullDate(item.date)}</td>
-                      <td>
-                        <strong style={{ color: "#007bff" }}>
-                          {item.status}
-                        </strong>
-                      </td>
-                      <td>{item.checkIn || "—"}</td>
-                      <td>{item.checkOut || "—"}</td>
-                      <td>{item.totalHours || "—"}</td>
-                      <td>{item.location || "—"}</td>
+              <>
+                <table
+                  border="1"
+                  cellPadding="12"
+                  style={{
+                    width: "100%",
+                    borderCollapse: "collapse",
+                    textAlign: "left",
+                  }}
+                >
+                  <thead>
+                    <tr style={{ backgroundColor: "#f4f4f4" }}>
+                      <th>Date</th>
+                      <th>Status</th>
+                      <th>Check In</th>
+                      <th>Check Out</th>
+                      <th>Total Hours</th>
+                      <th>Location</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {paginatedData.map((item, index) => (
+                      <tr key={item._id || index}>
+                        <td>{formatFullDate(item.date)}</td>
+                        <td>
+                          <strong style={{ color: "#007bff" }}>
+                            {item.status}
+                          </strong>
+                        </td>
+                        <td>{item.checkIn || "—"}</td>
+                        <td>{item.checkOut || "—"}</td>
+                        <td>{item.totalHours || "—"}</td>
+                        <td>{item.location || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {totalPages > 1 && (
+                  <div
+                    style={{
+                      marginTop: "15px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: "10px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <span style={{ color: "#666" }}>
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button
+                        onClick={() =>
+                          setCurrentPage((prev) => Math.max(prev - 1, 1))
+                        }
+                        disabled={currentPage === 1}
+                        style={{
+                          padding: "8px 12px",
+                          borderRadius: "5px",
+                          border: "1px solid #ccc",
+                          backgroundColor:
+                            currentPage === 1 ? "#f1f1f1" : "white",
+                          cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                        }}
+                      >
+                        Previous
+                      </button>
+                      <button
+                        onClick={() =>
+                          setCurrentPage((prev) =>
+                            Math.min(prev + 1, totalPages),
+                          )
+                        }
+                        disabled={currentPage === totalPages}
+                        style={{
+                          padding: "8px 12px",
+                          borderRadius: "5px",
+                          border: "1px solid #ccc",
+                          backgroundColor:
+                            currentPage === totalPages ? "#f1f1f1" : "white",
+                          cursor:
+                            currentPage === totalPages
+                              ? "not-allowed"
+                              : "pointer",
+                        }}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </>

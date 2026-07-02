@@ -485,23 +485,44 @@ export const listByDate = async (req, res) => {
   }
 };
 
-// Self: my history (optionally limit)
+// Self: my history (optionally limit or month-filtered)
 export const myHistory = async (req, res) => {
   try {
     const userId = req.user?._id; // JWT contains _id, not employeeId
     if (!userId)
       return res.status(401).json({ status: false, message: "Unauthorized" });
-    const { limit = 31 } = req.query;
-    const recs = await Attendance.find({ employee: userId })
-      .sort({ date: -1 })
-      .limit(Number(limit));
+
+    const { limit = 31, month } = req.query;
+    const query = { employee: userId };
+
+    if (month) {
+      const [yearStr, monthStr] = String(month).split("-");
+      const year = Number(yearStr);
+      const monthIndex = Number(monthStr) - 1;
+      if (
+        !Number.isNaN(year) &&
+        !Number.isNaN(monthIndex) &&
+        monthIndex >= 0 &&
+        monthIndex <= 11
+      ) {
+        const startOfMonth = new Date(year, monthIndex, 1, 0, 0, 0, 0);
+        const endOfMonth = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999);
+        query.date = { $gte: startOfMonth, $lte: endOfMonth };
+      }
+    }
+
+    let attendanceQuery = Attendance.find(query).sort({ date: -1 });
+    if (!month) {
+      attendanceQuery = attendanceQuery.limit(Number(limit));
+    }
+
+    const recs = await attendanceQuery;
     // fetch employee for mapping
     const emp = await Employee.findById(userId).populate({
       path: "department",
       select: "name",
     });
     const data = recs.map((r) => mapRecord(r, emp));
-    console.log("My history data", data);
     return res
       .status(200)
       .json({ status: true, message: "My attendance history", data });
@@ -1159,7 +1180,7 @@ export const uploadAttendance = async (req, res) => {
 
 export const getAttendanceByDatequery = async (req, res) => {
   try {
-    const { employeeId, date } = req.query;
+    const { employeeId, month } = req.query;
 
     const filter = {};
 
@@ -1167,15 +1188,21 @@ export const getAttendanceByDatequery = async (req, res) => {
       filter.employee = employeeId;
     }
 
-    if (date) {
-      // Convert to start and end of day to avoid timezone issues
-      const startOfDay = new Date(date);
-      startOfDay.setHours(0, 0, 0, 0);
-
-      const endOfDay = new Date(date);
-      endOfDay.setHours(23, 59, 59, 999);
-
-      filter.date = { $gte: startOfDay, $lte: endOfDay };
+    if (month) {
+      // Expect month in YYYY-MM format from the frontend
+      const [yearStr, monthStr] = String(month).split("-");
+      const year = Number(yearStr);
+      const monthIndex = Number(monthStr) - 1;
+      if (
+        !Number.isNaN(year) &&
+        !Number.isNaN(monthIndex) &&
+        monthIndex >= 0 &&
+        monthIndex <= 11
+      ) {
+        const startOfMonth = new Date(year, monthIndex, 1, 0, 0, 0, 0);
+        const endOfMonth = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999);
+        filter.date = { $gte: startOfMonth, $lte: endOfMonth };
+      }
     }
 
     const attendance = await Attendance.find(filter)

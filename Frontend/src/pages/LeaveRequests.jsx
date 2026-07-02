@@ -3763,7 +3763,10 @@ const LeaveRequests = () => {
   };
 
   const getLeaveDuration = (leave) => {
-    if (leave.rawType === "half_day") return 0.5;
+    if (leave.rawType === "half_day") {
+      if (["sick", "personal"].includes(leave.originalType)) return 0.5;
+      return 1;
+    }
     const duration = Number(leave.duration);
     return Number.isFinite(duration) && duration > 0 ? duration : 1;
   };
@@ -3959,9 +3962,11 @@ const LeaveRequests = () => {
     }
   }, [token, userId, isHR]);
 
-  const calculateDuration = (startDate, endDate, isHalfDay) => {
+  const calculateDuration = (startDate, endDate, isHalfDay, leaveType) => {
     if (!startDate || !endDate) return 0;
-    if (isHalfDay) return 0.5;
+    if (isHalfDay && ["Sick Leave", "Personal Leave"].includes(leaveType))
+      return 0.5;
+    if (isHalfDay) return 1;
     const start = new Date(startDate);
     const end = new Date(endDate);
     if (start > end) return 0;
@@ -3973,6 +3978,7 @@ const LeaveRequests = () => {
     newLeave.startDate,
     newLeave.endDate,
     newLeave.isHalfDay,
+    newLeave.leaveType,
   );
   const leaveDays = duration;
 
