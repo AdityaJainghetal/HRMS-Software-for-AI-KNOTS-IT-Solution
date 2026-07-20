@@ -4779,6 +4779,7 @@ const LeaveRequests = () => {
           </div>
         </CardContent>
       </Card>
+      
 
       {/* Leave Requests Table */}
       <Card className="data-table">

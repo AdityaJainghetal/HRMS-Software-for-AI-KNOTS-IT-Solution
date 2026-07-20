@@ -238,6 +238,38 @@ export const refreshEmployeeLeaveBalance = async (
   return calculated;
 };
 
+export const refreshEmployeeStatus = async (
+  employee,
+  referenceDate = new Date(),
+) => {
+  if (!employee) return employee;
+  if (employee.status === "terminated" || employee.status === "inactive") {
+    return employee;
+  }
+
+  const currentDate = new Date(referenceDate);
+  currentDate.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(currentDate);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const activeLeave = await Leave.findOne({
+    employee: employee._id,
+    status: "approved",
+    startDate: { $lte: endOfDay },
+    endDate: { $gte: currentDate },
+  });
+
+  const shouldBeOnLeave = Boolean(activeLeave);
+  if (shouldBeOnLeave && employee.status !== "on_leave") {
+    employee.status = "on_leave";
+    await employee.save();
+  } else if (!shouldBeOnLeave && employee.status === "on_leave") {
+    employee.status = "active";
+    await employee.save();
+  }
+  return employee;
+};
+
 // export const grantLeave = async (req, res) => {
 //   const { id } = req.params;
 //   const { days, type, reason } = req.body;
@@ -376,9 +408,10 @@ export const getAllEmployees = async (req, res) => {
         message: "No employees found",
       });
     }
-    // Refresh leave balance for current financial year before returning employees
+    // Refresh leave balance and leave status before returning employees
     const mapped = await Promise.all(
       employees.map(async (emp) => {
+        await refreshEmployeeStatus(emp);
         await refreshEmployeeLeaveBalance(emp);
         return {
           id: emp._id,
@@ -430,7 +463,8 @@ export const getEmployeeById = async (req, res) => {
         message: "Employee not found",
       });
     }
-    // Refresh leave balance for current financial year before returning the employee
+    // Refresh leave status and leave balance before returning the employee
+    await refreshEmployeeStatus(emp);
     await refreshEmployeeLeaveBalance(emp);
     const mapped = {
       id: emp._id,
