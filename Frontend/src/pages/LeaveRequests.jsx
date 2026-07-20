@@ -3722,6 +3722,8 @@ const LeaveRequests = () => {
   const [currentLeaveBalance, setCurrentLeaveBalance] = useState(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [employees, setEmployees] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   const [newLeave, setNewLeave] = useState({
     leaveType: "",
@@ -4230,6 +4232,25 @@ const LeaveRequests = () => {
       filterStatus === "all" || request.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredRequests.length / PAGE_SIZE),
+  );
+  const paginatedRequests = filteredRequests.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterStatus, leaveRequests.length]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -4766,6 +4787,7 @@ const LeaveRequests = () => {
             <TableRow>
               <TableHead>Employee</TableHead>
               <TableHead>Leave Type</TableHead>
+              <TableHead>Reason</TableHead>
               <TableHead>Start Date</TableHead>
               <TableHead>End Date</TableHead>
               <TableHead>Duration</TableHead>
@@ -4776,7 +4798,7 @@ const LeaveRequests = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredRequests.map((request) => (
+            {paginatedRequests.map((request) => (
               <TableRow key={request.id}>
                 <TableCell>
                   <div className="flex items-center space-x-3">
@@ -4805,6 +4827,7 @@ const LeaveRequests = () => {
                   </div>
                 </TableCell>
                 <TableCell>{request.leaveType}</TableCell>
+                <TableCell>{request.reason || "—"}</TableCell>
                 <TableCell>
                   {new Date(request.startDate).toLocaleDateString()}
                 </TableCell>
@@ -4866,6 +4889,44 @@ const LeaveRequests = () => {
           </TableBody>
         </Table>
       </Card>
+
+      {filteredRequests.length > PAGE_SIZE && (
+        <div className="flex items-center justify-between px-4 py-3 text-sm text-muted-foreground">
+          <div>
+            Showing{" "}
+            {Math.min(
+              (currentPage - 1) * PAGE_SIZE + 1,
+              filteredRequests.length,
+            )}
+            {" - "}
+            {Math.min(currentPage * PAGE_SIZE, filteredRequests.length)} of{" "}
+            {filteredRequests.length}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            >
+              Previous
+            </Button>
+            <span>
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage === totalPages}
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
       {filteredRequests.length === 0 && (
         <div className="text-center py-12">
