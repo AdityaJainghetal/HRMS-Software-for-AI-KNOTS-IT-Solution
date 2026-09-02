@@ -1,17 +1,12 @@
-// config/multerProfile.js
 import multer from "multer";
-import { CloudinaryStorage } from "multer-storage-cloudinary";
-import cloudinary from "./cloudinary.js";
 
-const storage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: "profiles",
-    resource_type: "image",
-    public_id: (req, file) => `${Date.now()}-${file.originalname.split(".")[0]}`,
+const uploadProfile = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) return cb(null, true);
+    cb(new Error("Only image files are allowed for a profile picture"));
   },
 });
-
-const uploadProfile = multer({ storage });
 
 export default uploadProfile;

@@ -36,6 +36,7 @@ import {
   Camera,
 } from "lucide-react";
 import { toast } from "react-toastify";
+import { getApiErrorMessage } from "../lib/apiError";
 
 const Profile = () => {
   const wrapperStyle = {
@@ -156,14 +157,9 @@ const Profile = () => {
       toast.info("Updating profile...");
       await updateProfile(profileData);
       setIsEditing(false);
-      toast.success("Profile updated successfully!");
     } catch (error) {
       console.error("Profile update error:", error);
-      const errorMsg =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Failed to update profile";
-      toast.error(errorMsg);
+      toast.error(getApiErrorMessage(error, "Failed to update profile"));
     } finally {
       setIsSubmitting(false);
     }
@@ -211,14 +207,9 @@ const Profile = () => {
         newPassword: "",
         confirmPassword: "",
       });
-      toast.success("Password changed successfully!");
     } catch (err) {
       console.error("Password change failed:", err);
-      const errorMsg =
-        err?.response?.data?.message ||
-        err?.message ||
-        "Failed to change password";
-      toast.error(errorMsg);
+      toast.error(getApiErrorMessage(err, "Failed to change password"));
     } finally {
       setIsSubmitting(false);
     }
@@ -394,10 +385,10 @@ const Profile = () => {
       return;
     }
 
-    // File size validation (max 5MB)
-    const maxSize = 5 * 1024 * 1024;
+    // File size validation (max 2MB)
+    const maxSize = 2 * 1024 * 1024;
     if (file.size > maxSize) {
-      toast.error("Image size must be less than 5MB");
+      toast.error("Image size must be less than 2MB");
       return;
     }
 
@@ -416,15 +407,10 @@ const Profile = () => {
       // If backend returned mapped user data with avatar, use that (persisted URL)
       if (uploaded && uploaded.avatar) {
         setProfileImage(uploaded.avatar);
-        toast.success("Profile picture uploaded successfully!");
-      } else {
-        toast.success("Profile picture updated");
       }
     } catch (err) {
       console.error("Failed to upload profile image", err);
-      const errorMsg =
-        err?.response?.data?.message || "Failed to upload profile image";
-      toast.error(errorMsg);
+      toast.error(getApiErrorMessage(err, "Failed to upload profile image"));
     }
   };
 

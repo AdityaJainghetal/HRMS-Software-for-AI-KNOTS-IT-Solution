@@ -894,6 +894,7 @@ import {
   updateTask,
   deleteTask,
 } from "../store/tasksSlice";
+import { getApiErrorMessage } from "../lib/apiError";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -1050,7 +1051,11 @@ const TaskManagement = () => {
 
   // Fetch Data
   useEffect(() => {
-    dispatch(fetchTasks());
+    dispatch(fetchTasks())
+      .unwrap()
+      .catch((error) => {
+        toast.error(getApiErrorMessage(error, "Failed to load tasks"));
+      });
 
     const fetchEmployees = async () => {
       try {
@@ -1177,7 +1182,7 @@ const TaskManagement = () => {
       resetNewTask();
       toast.success("Task created successfully!");
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to create task");
+      toast.error(getApiErrorMessage(err, "Failed to create task"));
     } finally {
       setIsSubmitting(false);
     }
@@ -1219,7 +1224,7 @@ const TaskManagement = () => {
       setEditingTask(null);
       toast.success("Task updated successfully!");
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to update task");
+      toast.error(getApiErrorMessage(err, "Failed to update task"));
     }
   };
 
@@ -1229,7 +1234,7 @@ const TaskManagement = () => {
       await dispatch(deleteTask(id)).unwrap();
       toast.success("Task deleted successfully!");
     } catch (err) {
-      toast.error("Failed to delete task");
+      toast.error(getApiErrorMessage(err, "Failed to delete task"));
     }
   };
 

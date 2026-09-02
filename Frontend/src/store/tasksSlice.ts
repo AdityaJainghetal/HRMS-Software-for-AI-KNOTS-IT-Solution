@@ -15,6 +15,7 @@ const normalizeTask = (task) => ({
   startDateTime: task.startDateTime ? new Date(task.startDateTime) : new Date(),
   endDateTime: task.endDateTime ? new Date(task.endDateTime) : new Date(),
   createdAt: task.createdAt ? new Date(task.createdAt) : new Date(),
+  updatedAt: task.updatedAt ? new Date(task.updatedAt) : undefined,
   status: String(task.status || "pending").toLowerCase(),
   priority: task.priority || "medium",
 });
@@ -24,6 +25,12 @@ const initialState = {
   status: "idle",
   error: null,
 };
+
+const getErrorMessage = (error: any) =>
+  error?.response?.data?.message ||
+  error?.response?.data?.error ||
+  error?.message ||
+  "Task request failed";
 
 export const fetchTasks = createAsyncThunk(
   "tasks/fetchTasks",
@@ -37,9 +44,12 @@ export const fetchTasks = createAsyncThunk(
       const response = await axios.get(`${API_URL}/api/tasks`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!response.data?.status && response.data?.message) {
+        return rejectWithValue(response.data.message);
+      }
       return (response.data?.data || []).map(normalizeTask);
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || error.message);
+      return rejectWithValue(getErrorMessage(error));
     }
   },
 );
@@ -56,9 +66,12 @@ export const createTask = createAsyncThunk(
       const response = await axios.post(`${API_URL}/api/tasks`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!response.data?.status && response.data?.message) {
+        return rejectWithValue(response.data.message);
+      }
       return normalizeTask(response.data.data);
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || error.message);
+      return rejectWithValue(getErrorMessage(error));
     }
   },
 );
@@ -82,9 +95,12 @@ export const updateTask = createAsyncThunk(
           headers: { Authorization: `Bearer ${token}` },
         },
       );
+      if (!response.data?.status && response.data?.message) {
+        return rejectWithValue(response.data.message);
+      }
       return normalizeTask(response.data.data);
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || error.message);
+      return rejectWithValue(getErrorMessage(error));
     }
   },
 );
@@ -98,12 +114,15 @@ export const deleteTask = createAsyncThunk(
     }
 
     try {
-      await axios.delete(`${API_URL}/api/tasks/${id}`, {
+      const response = await axios.delete(`${API_URL}/api/tasks/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!response.data?.status && response.data?.message) {
+        return rejectWithValue(response.data.message);
+      }
       return id;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || error.message);
+      return rejectWithValue(getErrorMessage(error));
     }
   },
 );
@@ -126,16 +145,46 @@ const tasksSlice = createSlice({
         state.status = "failed";
         state.error = action.payload || action.error.message;
       })
+      .addCase(createTask.pending, (state) => {
+        state.status = "loading";
+        state.error = null;
+      })
       .addCase(createTask.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.error = null;
         state.tasks.unshift(action.payload);
       })
+      .addCase(createTask.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.payload || action.error.message;
+      })
+      .addCase(updateTask.pending, (state) => {
+        state.status = "loading";
+        state.error = null;
+      })
       .addCase(updateTask.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.error = null;
         state.tasks = state.tasks.map((task) =>
           task.id === action.payload.id ? action.payload : task,
         );
       })
+      .addCase(updateTask.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.payload || action.error.message;
+      })
+      .addCase(deleteTask.pending, (state) => {
+        state.status = "loading";
+        state.error = null;
+      })
       .addCase(deleteTask.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.error = null;
         state.tasks = state.tasks.filter((task) => task.id !== action.payload);
+      })
+      .addCase(deleteTask.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.payload || action.error.message;
       });
   },
 });

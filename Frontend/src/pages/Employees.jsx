@@ -1,5 +1,3 @@
-
-
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
@@ -42,12 +40,9 @@ import {
   UserPlus,
   Users,
 } from "lucide-react";
-// import { toast } from "react-toastify";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 const API_URL = import.meta.env.VITE_API_URL;
-
-
 
 const Employees = () => {
   const { isHR } = useAuth();
@@ -74,14 +69,13 @@ const Employees = () => {
     [departments],
   );
 
-    const marginStyle = {
-    marginBottom: "10px"
+  const marginStyle = {
+    marginBottom: "10px",
   };
 
   const button = {
-    width: "200px"
+    width: "200px",
   };
-
 
   const API_BASE = API_URL;
   const token =
@@ -1189,8 +1183,6 @@ const Employees = () => {
           </div>
         </DialogContent>
       </Dialog>
-
-      <ToastContainer position="top-right" autoClose={5000} />
     </div>
   );
 };

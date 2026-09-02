@@ -216,24 +216,13 @@ const App = () => (
           <TooltipProvider>
             <Toaster />
             <Sonner />
-            <ToastContainer
-            position="top-right"
-            autoClose={3000}  
-            hideProgressBar={false}
-            newestOnTop
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-            theme="light"
-          />
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </ThemeProvider>
+            <ToastContainer position="top-right" autoClose={3000} />
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </Provider>
   </QueryClientProvider>
 );

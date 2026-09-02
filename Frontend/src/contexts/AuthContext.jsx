@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import axios from "axios";
+import { getApiErrorMessage } from "../lib/apiError";
 const API_URL = import.meta.env.VITE_API_URL;
 
 const AuthContext = createContext();
@@ -42,7 +43,8 @@ export const AuthProvider = ({ children }) => {
         };
         setUser(normalized);
       } catch (e) {
-        setUser(JSON.parse(userData));
+        localStorage.removeItem("userData");
+        setUser(null);
       }
     }
     setLoading(false);
@@ -81,9 +83,7 @@ export const AuthProvider = ({ children }) => {
       toast.success(`Welcome back, ${data.data.user.name}!`);
       return data.data.user;
     } catch (error) {
-      toast.error(
-        error.response?.data?.message || "Login failed. Please try again.",
-      );
+      toast.error(getApiErrorMessage(error, "Login failed. Please try again."));
       throw error;
     }
   };
@@ -120,7 +120,7 @@ export const AuthProvider = ({ children }) => {
       return data.data.user;
     } catch (error) {
       toast.error(
-        error.response?.data?.message || "Signup failed. Please try again.",
+        getApiErrorMessage(error, "Signup failed. Please try again."),
       );
       throw error;
     }
@@ -171,11 +171,7 @@ export const AuthProvider = ({ children }) => {
       toast.success("Profile updated successfully");
       return updatedUser;
     } catch (error) {
-      toast.error(
-        error.response?.data?.message ||
-          error.message ||
-          "Profile update failed",
-      );
+      toast.error(getApiErrorMessage(error, "Profile update failed"));
       throw error;
     }
   };
@@ -202,8 +198,7 @@ export const AuthProvider = ({ children }) => {
       return true;
     } catch (error) {
       toast.error(
-        error.response?.data?.message ||
-          "Password change failed. Please try again.",
+        getApiErrorMessage(error, "Password change failed. Please try again."),
       );
       throw error;
     }
@@ -238,9 +233,7 @@ export const AuthProvider = ({ children }) => {
       throw new Error(res.data?.message || "Upload failed");
     } catch (err) {
       console.error("Profile upload failed", err);
-      toast.error(
-        err.response?.data?.message || err.message || "Profile upload failed",
-      );
+      toast.error(getApiErrorMessage(err, "Profile upload failed"));
       throw err;
     }
   };

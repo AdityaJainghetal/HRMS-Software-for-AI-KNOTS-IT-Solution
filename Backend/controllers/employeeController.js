@@ -678,7 +678,7 @@ export const updateEmployee = async (req, res) => {
         emergencyContact,
         emergencyPhone,
       },
-      { new: true },
+      { new: true, runValidators: true },
     );
     if (!employee) {
       return res
@@ -941,11 +941,12 @@ export const resumeUpload = async (req, res) => {
   }
 };
 
-// Upload profile image and save Cloudinary URL to employee.profileImage
+// Save a direct image URL or an in-memory image as a data URL.
 export const profileUpload = async (req, res) => {
   const { id } = req.params;
+  const directUrl = req.body?.profileUrl?.trim();
 
-  if (!req.file) {
+  if (!req.file && !directUrl) {
     return res.status(400).json({ status: false, message: "No file uploaded" });
   }
 
@@ -957,35 +958,16 @@ export const profileUpload = async (req, res) => {
         .json({ status: false, message: "Employee not found" });
     }
 
-    // multer-storage-cloudinary may set different properties depending on version.
-    // Try common locations for the uploaded file URL.
-    const file = req.file;
-    console.log(
-      "profileUpload: received file:",
-      file && {
-        originalname: file.originalname,
-        mimetype: file.mimetype,
-        size: file.size,
-        path: file.path,
-        url: file.url,
-        secure_url: file.secure_url,
-        location: file.location,
-      },
-    );
-
-    const url =
-      file?.path || file?.secure_url || file?.url || file?.location || null;
-    if (!url) {
-      console.error(
-        "profileUpload: could not determine uploaded file URL",
-        file,
-      );
-      return res.status(500).json({
+    if (directUrl && !/^(https?:\/\/|data:image\/)/i.test(directUrl)) {
+      return res.status(400).json({
         status: false,
-        message: "Uploaded but failed to determine Cloudinary URL",
-        file,
+        message: "profileUrl must be an HTTP(S) image URL",
       });
     }
+
+    const url =
+      directUrl ||
+      `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
 
     employee.profileImage = url;
     await employee.save();

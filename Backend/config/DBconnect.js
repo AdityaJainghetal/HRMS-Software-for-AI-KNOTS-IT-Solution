@@ -2,6 +2,14 @@ import mongoose from "mongoose";
 
 const connectDB = async () => {
   try {
+    const mongoUri = process.env.MONGODB_URI?.trim();
+
+    if (!mongoUri) {
+      throw new Error(
+        "MONGODB_URI is not set. Add it to Backend/.env or your deployment environment.",
+      );
+    }
+
     mongoose.connection.on("connected", () => {
       console.log("MongoDB Connected");
     });
@@ -14,8 +22,8 @@ const connectDB = async () => {
       console.log("❌MongoDB Disconnected");
     });
 
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log('✅MongoDB connect attempt using URI:', process.env.MONGODB_URI ? '[REDACTED]' : 'MONGODB_URI not set');
+    await mongoose.connect(mongoUri);
+    console.log("✅MongoDB connect attempt using URI: [REDACTED]");
   } catch (error) {
     console.error("MongoDB connection error:", error);
     process.exit(1);
