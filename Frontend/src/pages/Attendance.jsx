@@ -61,7 +61,7 @@ const Attendance = () => {
 
     try {
       const res = await axios.post(
-        "http://localhost:8000/api/attendance/upload-attendance",
+        "https://hrms-software-for-ai-knots-it-solution.onrender.com/api/attendance/upload-attendance",
         formData,
         { headers: { Authorization: `Bearer ${token}` } },
       );
@@ -93,7 +93,7 @@ const Attendance = () => {
 
     try {
       const res = await axios.get(
-        "http://localhost:8000/api/employees",
+        "https://hrms-software-for-ai-knots-it-solution.onrender.com/api/employees",
         config,
       );
       setEmployees(res.data?.data || []);
@@ -122,7 +122,7 @@ const Attendance = () => {
         if (selectedMonth) params.month = selectedMonth;
 
         res = await axios.get(
-          "http://localhost:8000/api/attendance/datefilter",
+          "https://hrms-software-for-ai-knots-it-solution.onrender.com/api/attendance/datefilter",
           {
             params,
             ...config,
@@ -135,10 +135,13 @@ const Attendance = () => {
         } else {
           params.limit = 31;
         }
-        res = await axios.get("http://localhost:8000/api/attendance/me", {
-          params,
-          ...config,
-        });
+        res = await axios.get(
+          "https://hrms-software-for-ai-knots-it-solution.onrender.com/api/attendance/me",
+          {
+            params,
+            ...config,
+          },
+        );
       }
 
       setData(res.data?.data || []);
@@ -235,7 +238,7 @@ const Attendance = () => {
     setStatusUpdatingId(item._id || `${employeeId}-${date}`);
     try {
       await axios.post(
-        "http://localhost:8000/api/attendance/upsert",
+        "https://hrms-software-for-ai-knots-it-solution.onrender.com/api/attendance/upsert",
         {
           employeeId,
           date,

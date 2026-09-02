@@ -67,7 +67,7 @@ Use a MongoDB Atlas connection string when using Atlas. Keep `.env` private and 
 Create `Frontend/.env`:
 
 ```env
-VITE_API_URL=http://localhost:8000
+VITE_API_URL=https://hrms-software-for-ai-knots-it-solution.onrender.com
 ```
 
 The frontend uses `VITE_API_URL` for API requests. Restart Vite after changing environment variables.
@@ -92,7 +92,7 @@ npm run dev
 
 Open the URL printed by Vite, usually `http://localhost:5173`.
 
-The backend port is controlled by `PORT`. The frontend URL must use the same backend port, for example `http://localhost:8000`.
+The backend port is controlled by `PORT`. The frontend URL must use the same backend port, for example `https://hrms-software-for-ai-knots-it-solution.onrender.com`.
 
 ## Demo Data
 
