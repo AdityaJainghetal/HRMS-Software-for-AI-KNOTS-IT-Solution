@@ -164,6 +164,67 @@ const getApprovedLeaveDays = async (employeeId, rangeStart, rangeEnd) => {
   );
 };
 
+const calculateFemaleMonthlyLeaveBalance = async (
+  employee,
+  joinDate,
+  referenceDate,
+) => {
+  const firstMonth = new Date(joinDate.getFullYear(), joinDate.getMonth(), 1);
+  const currentMonth = new Date(
+    referenceDate.getFullYear(),
+    referenceDate.getMonth(),
+    1,
+  );
+  const approvedLeaves = await Leave.find({
+    employee: employee._id,
+    status: "approved",
+    endDate: { $gte: firstMonth },
+    startDate: {
+      $lte: new Date(
+        referenceDate.getFullYear(),
+        referenceDate.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+        999,
+      ),
+    },
+  });
+
+  let carryForward = 0;
+  let balance = 0;
+  for (
+    let monthStart = firstMonth;
+    monthStart <= currentMonth;
+    monthStart = new Date(
+      monthStart.getFullYear(),
+      monthStart.getMonth() + 1,
+      1,
+    )
+  ) {
+    const monthEnd = new Date(
+      monthStart.getFullYear(),
+      monthStart.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999,
+    );
+    const available = 3 + carryForward;
+    const used = approvedLeaves.reduce(
+      (sum, leave) => sum + getLeaveOverlapDays(leave, monthStart, monthEnd),
+      0,
+    );
+    const unused = Math.max(available - used, 0);
+    balance = unused;
+    carryForward = Math.min(unused, 2);
+  }
+
+  return balance;
+};
+
 const calculateLeaveBalanceForEmployee = async (
   employee,
   referenceDate = new Date(),
@@ -181,6 +242,16 @@ const calculateLeaveBalanceForEmployee = async (
   const effectiveStart =
     joinDate > financialYearStart ? joinDate : financialYearStart;
   if (effectiveStart > financialYearEnd) return 0;
+
+  if (employee.gender === "F" || employee.gender === "female") {
+    const monthlyBalance = await calculateFemaleMonthlyLeaveBalance(
+      employee,
+      joinDate,
+      effectiveReferenceDate,
+    );
+    const adjustment = Number(employee.leaveAdjustment || 0);
+    return Math.max(monthlyBalance + adjustment, 0);
+  }
 
   const currentQuarterStart = getFinancialQuarterBounds(
     effectiveReferenceDate,

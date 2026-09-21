@@ -58,6 +58,9 @@ const EmployeeDevices = () => {
         return Smartphone;
       case "monitor":
         return Monitor;
+      case "laptop_charger":
+      case "mobile_charger":
+        return Keyboard;
       case "accessory":
         return Keyboard;
       default:
@@ -100,6 +103,10 @@ const EmployeeDevices = () => {
     const type = d.type || d.deviceType || "";
     const model = d.model || "";
     const serialNumber = d.serialNumber || d.serial || "";
+    const mobileNumber = d.mobileNumber || "";
+    const phoneNumber = d.phoneNumber || mobileNumber;
+    const networkProvider = d.networkProvider || "";
+    const chargerDetails = d.chargerDetails || "";
     const assignedDate =
       d.assignedDate || d.assignedAt || d.assignedOn || d.assigned || null;
     const status = d.status || "active";
@@ -111,6 +118,10 @@ const EmployeeDevices = () => {
       type,
       model,
       serialNumber,
+      mobileNumber,
+      phoneNumber,
+      networkProvider,
+      chargerDetails,
       assignedDate,
       status,
       location,
@@ -278,6 +289,19 @@ const EmployeeDevices = () => {
                     <div>
                       <h4 className="font-semibold text-lg">{device.name}</h4>
                       <p className="text-muted-foreground">{device.model}</p>
+                      {device.phoneNumber && (
+                        <p className="text-sm text-muted-foreground">
+                          Phone Number: {device.phoneNumber}
+                          {device.networkProvider
+                            ? ` (${device.networkProvider})`
+                            : ""}
+                        </p>
+                      )}
+                      {device.chargerDetails && (
+                        <p className="text-sm text-muted-foreground">
+                          Charger: {device.chargerDetails}
+                        </p>
+                      )}
                       <div className="flex items-center space-x-4 mt-2 text-sm text-muted-foreground">
                         <div className="flex items-center space-x-1">
                           <Calendar className="w-4 h-4" />
@@ -457,13 +481,14 @@ const EmployeeDevices = () => {
           <CardContent>
             <div className="space-y-3">
               <p className="text-sm">
-                <strong>IT Support:</strong> support@atlaknots.com
+                <strong>IT Support:</strong> support@aiknotsit.com
               </p>
               <p className="text-sm">
-                <strong>Phone:</strong> +91 78696 36070
+                <strong>Phone:</strong> +91 9630466070
               </p>
               <p className="text-sm">
-                <strong>Office Hours:</strong> Monday - Saturday, 10:00 AM - 7:00 PM
+                <strong>Office Hours:</strong> Monday - Saturday, 10:00 AM -
+                7:00 PM
               </p>
             </div>
           </CardContent>

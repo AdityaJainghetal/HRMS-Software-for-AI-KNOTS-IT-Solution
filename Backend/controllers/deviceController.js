@@ -114,13 +114,20 @@ export const deleteDevice = async (req, res) => {
   }
 };
 
-// Search devices by name/type/serialNumber
+// Search devices by name/type/serialNumber/mobileNumber/phoneNumber
 export const searchDevices = async (req, res) => {
   try {
     const { q } = req.query;
     const regex = new RegExp(q, "i");
     const devices = await Device.find({
-      $or: [{ name: regex }, { type: regex }, { serialNumber: regex }],
+      $or: [
+        { name: regex },
+        { type: regex },
+        { serialNumber: regex },
+        { mobileNumber: regex },
+        { phoneNumber: regex },
+        { networkProvider: regex },
+      ],
     });
     if (!devices || devices.length === 0) {
       return res.status(404).json({
@@ -147,30 +154,53 @@ export const assignDevice = async (req, res) => {
   const deviceId = req.params.id || req.body.deviceId;
   const { employeeId, assignedDate, location, notes } = req.body;
   try {
-    if (!deviceId) return res.status(400).json({ status: false, message: 'device id is required' });
+    if (!deviceId)
+      return res
+        .status(400)
+        .json({ status: false, message: "device id is required" });
     const device = await Device.findById(deviceId);
     if (!device) {
-      return res.status(404).json({ status: false, message: 'Device not found' });
+      return res
+        .status(404)
+        .json({ status: false, message: "Device not found" });
     }
     // validate employee exists
     if (employeeId) {
       const emp = await Employee.findById(employeeId);
-      if (!emp) return res.status(404).json({ status: false, message: 'Employee not found' });
+      if (!emp)
+        return res
+          .status(404)
+          .json({ status: false, message: "Employee not found" });
     }
     // set assignment
     device.assignedTo = employeeId;
     device.assignedDate = assignedDate ? new Date(assignedDate) : new Date();
     // record location when assigning (optional)
     if (location) device.location = location;
-    device.status = 'assigned';
+    device.status = "assigned";
     // push history
     device.history = device.history || [];
-    device.history.push({ employee: employeeId, action: 'assigned', date: device.assignedDate, notes: notes || '', location: device.location || null });
+    device.history.push({
+      employee: employeeId,
+      action: "assigned",
+      date: device.assignedDate,
+      notes: notes || "",
+      location: device.location || null,
+    });
     await device.save();
-    const populated = await Device.findById(device._id).populate('assignedTo', 'name employeeId email');
-    return res.status(200).json({ status: true, message: 'Device assigned', data: populated });
+    const populated = await Device.findById(device._id).populate(
+      "assignedTo",
+      "name employeeId email",
+    );
+    return res
+      .status(200)
+      .json({ status: true, message: "Device assigned", data: populated });
   } catch (error) {
-    return res.status(500).json({ status: false, message: 'Failed to assign device', error: String(error) });
+    return res.status(500).json({
+      status: false,
+      message: "Failed to assign device",
+      error: String(error),
+    });
   }
 };
 
@@ -179,26 +209,45 @@ export const returnDevice = async (req, res) => {
   const deviceId = req.params.id || req.body.deviceId;
   const { returnDate, notes } = req.body;
   try {
-    if (!deviceId) return res.status(400).json({ status: false, message: 'device id is required' });
+    if (!deviceId)
+      return res
+        .status(400)
+        .json({ status: false, message: "device id is required" });
     const device = await Device.findById(deviceId);
     if (!device) {
-      return res.status(404).json({ status: false, message: 'Device not found' });
+      return res
+        .status(404)
+        .json({ status: false, message: "Device not found" });
     }
     const returnedAt = returnDate ? new Date(returnDate) : new Date();
     device.returnDate = returnedAt;
     // record history using previously assigned employee if present
     const actorEmployee = device.assignedTo;
     device.history = device.history || [];
-    device.history.push({ employee: actorEmployee, action: 'returned', date: returnedAt, notes: notes || '' });
+    device.history.push({
+      employee: actorEmployee,
+      action: "returned",
+      date: returnedAt,
+      notes: notes || "",
+    });
     // clear assignment
     device.assignedTo = null;
     device.assignedDate = null;
-    device.status = 'available';
+    device.status = "available";
     await device.save();
-    const populated = await Device.findById(device._id).populate('assignedTo', 'name employeeId email');
-    return res.status(200).json({ status: true, message: 'Device returned', data: populated });
+    const populated = await Device.findById(device._id).populate(
+      "assignedTo",
+      "name employeeId email",
+    );
+    return res
+      .status(200)
+      .json({ status: true, message: "Device returned", data: populated });
   } catch (error) {
-    return res.status(500).json({ status: false, message: 'Failed to return device', error: String(error) });
+    return res.status(500).json({
+      status: false,
+      message: "Failed to return device",
+      error: String(error),
+    });
   }
 };
 
@@ -206,15 +255,30 @@ export const returnDevice = async (req, res) => {
 export const getMyDevices = async (req, res) => {
   try {
     const userId = req.user?._id || req.user?.id;
-    if (!userId) return res.status(401).json({ status: false, message: 'Unauthorized' });
-    if (req.user?.role === 'employee') {
-      const devices = await Device.find({ assignedTo: userId }).populate('assignedTo', 'name employeeId email');
-      return res.status(200).json({ status: true, message: 'My devices', data: devices });
+    if (!userId)
+      return res.status(401).json({ status: false, message: "Unauthorized" });
+    if (req.user?.role === "employee") {
+      const devices = await Device.find({ assignedTo: userId }).populate(
+        "assignedTo",
+        "name employeeId email",
+      );
+      return res
+        .status(200)
+        .json({ status: true, message: "My devices", data: devices });
     }
     // HR/Admin: return all devices
-    const devices = await Device.find().populate('assignedTo', 'name employeeId email');
-    return res.status(200).json({ status: true, message: 'Devices fetched', data: devices });
+    const devices = await Device.find().populate(
+      "assignedTo",
+      "name employeeId email",
+    );
+    return res
+      .status(200)
+      .json({ status: true, message: "Devices fetched", data: devices });
   } catch (error) {
-    return res.status(500).json({ status: false, message: 'Failed to fetch devices', error: String(error) });
+    return res.status(500).json({
+      status: false,
+      message: "Failed to fetch devices",
+      error: String(error),
+    });
   }
 };

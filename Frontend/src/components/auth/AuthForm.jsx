@@ -29,6 +29,8 @@ import {
   Shield,
   ArrowLeft,
   CheckCircle,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import logo from "../../assets/download.png";
 import { toast } from "react-toastify";
@@ -40,6 +42,11 @@ export const AuthForm = () => {
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState("login"); // 'login', 'signup', 'forgot-email', 'forgot-code', 'forgot-password'
   const [otpCode, setOtpCode] = useState("");
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
 
   const [loginForm, setLoginForm] = useState({
     email: "",
@@ -70,11 +77,13 @@ export const AuthForm = () => {
   const fetchDepartments = async () => {
     setLoadingDepartments(true);
     try {
-  const res = await axios.get(`${API_BASE}/api/departments/public-list`);
-  const list = (res.data?.data || []).filter(d => !!d?.name && !!d?._id || !!d?.id);
-  // normalize id
-  const normalized = list.map(d => ({ id: d.id || d._id, name: d.name }));
-  setDepartments(normalized);
+      const res = await axios.get(`${API_BASE}/api/departments/public-list`);
+      const list = (res.data?.data || []).filter(
+        (d) => (!!d?.name && !!d?._id) || !!d?.id,
+      );
+      // normalize id
+      const normalized = list.map((d) => ({ id: d.id || d._id, name: d.name }));
+      setDepartments(normalized);
     } catch (err) {
       console.error(err);
       // non-blocking: fallback to empty list
@@ -153,7 +162,7 @@ export const AuthForm = () => {
     try {
       const res = await axios.post(`${API_BASE}/api/auth/verify-otp`, {
         email: forgotForm.email.trim(),
-        otp: otpCode.trim(),   // ✅ make sure OTP is a string without spaces
+        otp: otpCode.trim(), // ✅ make sure OTP is a string without spaces
       });
       setResetToken(res.data.resetToken);
       toast.success(res.data.message);
@@ -190,10 +199,12 @@ export const AuthForm = () => {
     }
   };
 
-
   return (
     <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-4">
-      <div className="mx-auto transition-all duration-300"  style={{ width: "var(--auth-form-width)" }} > 
+      <div
+        className="mx-auto transition-all duration-300"
+        style={{ width: "var(--auth-form-width)" }}
+      >
         {" "}
         {/* Responsive: half screen on sm+, centered */}
         {/* Logo and Header */}
@@ -206,7 +217,9 @@ export const AuthForm = () => {
               className="w-16 h-16 object-cover"
             />
           </div>
-          <h1 className="text-2xl font-bold text-black dark:text-white mb-2">AI KNOTS IT Solutions</h1>
+          <h1 className="text-2xl font-bold text-black dark:text-white mb-2">
+            AI KNOTS IT Solutions
+          </h1>
           <p className="text-blue-100">Human Resource Management System</p>
         </div>
         <Card className="shadow-2xl border-0" style={{ marginTop: 15 }}>
@@ -309,9 +322,9 @@ export const AuthForm = () => {
                     <Lock className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
                     <Input
                       id="password"
-                      type="password"
+                      type={showLoginPassword ? "text" : "password"}
                       placeholder="Enter your password"
-                      className="pl-10"
+                      className="pl-10 pr-10"
                       value={loginForm.password}
                       onChange={(e) =>
                         setLoginForm((prev) => ({
@@ -321,6 +334,20 @@ export const AuthForm = () => {
                       }
                       required
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginPassword((prev) => !prev)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-sm p-0 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      aria-label={
+                        showLoginPassword ? "Hide password" : "Show password"
+                      }
+                    >
+                      {showLoginPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
                   </div>
                 </div>
 
@@ -431,7 +458,15 @@ export const AuthForm = () => {
                       }
                     >
                       <SelectTrigger className="h-10">
-                        <SelectValue placeholder={loadingDepartments ? "Loading..." : (departments.length ? "Select..." : "No departments") } />
+                        <SelectValue
+                          placeholder={
+                            loadingDepartments
+                              ? "Loading..."
+                              : departments.length
+                                ? "Select..."
+                                : "No departments"
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {departments.map((dept) => (
@@ -450,9 +485,9 @@ export const AuthForm = () => {
                     <Lock className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
                     <Input
                       id="signup-password"
-                      type="password"
+                      type={showSignupPassword ? "text" : "password"}
                       placeholder="Create a password"
-                      className="pl-10"
+                      className="pl-10 pr-10"
                       value={signupForm.password}
                       onChange={(e) =>
                         setSignupForm((prev) => ({
@@ -462,6 +497,20 @@ export const AuthForm = () => {
                       }
                       required
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowSignupPassword((prev) => !prev)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-sm p-0 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      aria-label={
+                        showSignupPassword ? "Hide password" : "Show password"
+                      }
+                    >
+                      {showSignupPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
                   </div>
                 </div>
 
@@ -471,9 +520,9 @@ export const AuthForm = () => {
                     <Lock className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
                     <Input
                       id="confirmPassword"
-                      type="password"
+                      type={showConfirmPassword ? "text" : "password"}
                       placeholder="Confirm your password"
-                      className="pl-10"
+                      className="pl-10 pr-10"
                       value={signupForm.confirmPassword}
                       onChange={(e) =>
                         setSignupForm((prev) => ({
@@ -483,6 +532,20 @@ export const AuthForm = () => {
                       }
                       required
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword((prev) => !prev)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-sm p-0 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      aria-label={
+                        showConfirmPassword ? "Hide password" : "Show password"
+                      }
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
                   </div>
                 </div>
 
@@ -603,9 +666,9 @@ export const AuthForm = () => {
                     <Lock className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
                     <Input
                       id="new-password"
-                      type="password"
+                      type={showNewPassword ? "text" : "password"}
                       placeholder="Enter new password"
-                      className="pl-10"
+                      className="pl-10 pr-10"
                       value={forgotForm.newPassword}
                       onChange={(e) =>
                         setForgotForm((prev) => ({
@@ -615,6 +678,20 @@ export const AuthForm = () => {
                       }
                       required
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword((prev) => !prev)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-sm p-0 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      aria-label={
+                        showNewPassword ? "Hide password" : "Show password"
+                      }
+                    >
+                      {showNewPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
                   </div>
                 </div>
 
@@ -626,9 +703,9 @@ export const AuthForm = () => {
                     <Lock className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
                     <Input
                       id="confirm-new-password"
-                      type="password"
+                      type={showConfirmNewPassword ? "text" : "password"}
                       placeholder="Confirm new password"
-                      className="pl-10"
+                      className="pl-10 pr-10"
                       value={forgotForm.confirmPassword}
                       onChange={(e) =>
                         setForgotForm((prev) => ({
@@ -638,6 +715,22 @@ export const AuthForm = () => {
                       }
                       required
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmNewPassword((prev) => !prev)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-sm p-0 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      aria-label={
+                        showConfirmNewPassword
+                          ? "Hide password"
+                          : "Show password"
+                      }
+                    >
+                      {showConfirmNewPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
                   </div>
                 </div>
 

@@ -57,15 +57,22 @@ export const listLeaves = async (req, res) => {
     let leaves;
     if (isHR) {
       leaves = await Leave.find()
-        // include profileImage and leave balance so frontend can display remaining balance
         .populate("employee", "name employeeId profileImage leaveBalance")
         .populate("manager", "name")
         .sort({ createdAt: -1 });
+      await Promise.all(
+        leaves.map(async (leave) => {
+          if (leave.employee) await refreshEmployeeLeaveBalance(leave.employee);
+        }),
+      );
     } else {
       leaves = await Leave.find({ employee: req.user?._id || req.user?.id })
         .populate("employee", "name employeeId profileImage leaveBalance")
         .populate("manager", "name")
         .sort({ createdAt: -1 });
+      if (leaves[0]?.employee) {
+        await refreshEmployeeLeaveBalance(leaves[0].employee);
+      }
     }
     return res.status(200).json({ status: true, data: leaves });
   } catch (err) {

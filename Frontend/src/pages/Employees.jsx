@@ -166,7 +166,9 @@ const Employees = () => {
     const joinDate = new Date(joinDateValue);
     if (Number.isNaN(joinDate.getTime())) return 0;
 
-    const financialYearStartMonth = 3; // April
+    if (gender === "female") return 3;
+
+    const financialYearStartMonth = 3;
     const month = joinDate.getMonth();
     const year = joinDate.getFullYear();
     const adjustedMonth = (month - financialYearStartMonth + 12) % 12;
@@ -179,13 +181,8 @@ const Employees = () => {
     const msPerDay = 1000 * 60 * 60 * 24;
     const remainingDays = Math.ceil((quarterEnd - joinDate) / msPerDay) + 1;
     const quarterDays = Math.ceil((quarterEnd - quarterStart) / msPerDay) + 1;
-    // Base allocation: 6 days per quarter
-    let allocation = Math.ceil((remainingDays / quarterDays) * 6);
-    // Add 1 extra day per quarter for females
-    if (gender === "female") {
-      allocation += 1;
-    }
-    return Math.min(Math.max(allocation, 1), gender === "female" ? 7 : 6);
+    const allocation = Math.ceil((remainingDays / quarterDays) * 6);
+    return Math.min(Math.max(allocation, 1), 6);
   };
 
   const calculatedLeaveBalance = calculateLeaveBalanceFromJoinDate(
@@ -547,8 +544,8 @@ const Employees = () => {
                 />
                 <p className="text-sm text-muted-foreground">
                   {newEmployee.joinDate
-                    ? `Leave balance will be: ${calculatedLeaveBalance} days (${newEmployee.gender === "female" ? "Female: 7/quarter" : "Male: 6/quarter"})`
-                    : "Select join date to calculate leave balance (Gender-based: Males get 6 days/quarter, Females get 7 days/quarter)"}
+                    ? `Leave balance will be: ${calculatedLeaveBalance} days (${newEmployee.gender === "female" ? "Female: 3/month, up to 2 carry forward" : "Male: 6/quarter"})`
+                    : "Select join date to calculate leave balance (Males get 6 days/quarter, females get 3 days/month with up to 2 carried forward)"}
                 </p>
               </div>
             </div>
@@ -1168,7 +1165,7 @@ const Employees = () => {
                 />
                 <p className="text-sm text-muted-foreground">
                   {editingEmployee.joinDate
-                    ? `Leave balance will update to ${calculatedEditLeaveBalance} days when saved (${editingEmployee.gender === "female" ? "Female: 7/quarter" : "Male: 6/quarter"}).`
+                    ? `Leave balance will update to ${calculatedEditLeaveBalance} days when saved (${editingEmployee.gender === "female" ? "Female: 3/month, up to 2 carry forward" : "Male: 6/quarter"}).`
                     : "Select a join date to recalculate leave balance (Gender-based calculation)."}
                 </p>
               </div>

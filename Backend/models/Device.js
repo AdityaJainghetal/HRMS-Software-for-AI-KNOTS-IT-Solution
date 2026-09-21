@@ -9,6 +9,10 @@ const deviceSchema = new mongoose.Schema(
     storage: { type: String },
     model: { type: String },
     serialNumber: { type: String, unique: true },
+    mobileNumber: { type: String },
+    phoneNumber: { type: String },
+    networkProvider: { type: String },
+    chargerDetails: { type: String },
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" }, // Reference to Employee
     assignedDate: { type: Date },
     returnDate: { type: Date },
@@ -34,7 +38,7 @@ const deviceSchema = new mongoose.Schema(
       },
     ],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export default mongoose.model("Device", deviceSchema);
