@@ -132,10 +132,10 @@ const LeaveRequests = () => {
   };
 
   const leaveTypeOptions = [
-    {
-      value: "Monthly Leave",
-      label: `Monthly Leave (${formatDays(monthlyAvailable ?? 0)} available)`,
-    },
+    // {
+    //   value: "Monthly Leave",
+    //   label: `Monthly Leave (${formatDays(monthlyAvailable ?? 0)} available)`,
+    // },
     {
       value: "Sick Leave",
       label: `Sick Leave (${formatDays(sickUsed)}/1 used, ${formatDays(Math.max(1 - sickUsed, 0))} left)`,
