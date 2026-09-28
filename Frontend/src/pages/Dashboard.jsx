@@ -1109,36 +1109,16 @@ const Dashboard = () => {
           style={statCardsContainerStyle}
           className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]"
         >
-          <Card className="dashboard-card h-[150px]">
-            <CardContent className="flex h-full items-center justify-between gap-3 p-6">
-              <div className="min-w-0 space-y-2">
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-                    Late Time
-                  </p>
-                  <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-800 dark:bg-orange-950 dark:text-orange-200">
-                    {lastMonthLabel}
-                  </span>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <p className="text-3xl font-bold text-foreground">
-                    {lastMonthLateMinutes !== null
-                      ? lastMonthLateMinutes.toLocaleString()
-                      : "--"}
-                  </p>
-                  <span className="text-sm font-medium text-muted-foreground">
-                    min
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Previous month · after 10:00 AM
-                </p>
-              </div>
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-500/10">
-                <Clock className="h-6 w-6 text-orange-600 dark:text-orange-300" />
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard
+            style={statCardStyle}
+            title={`Late Time (${lastMonthLabel.split(" ")[0]})`}
+            value={
+              lastMonthLateMinutes !== null
+                ? `${lastMonthLateMinutes.toLocaleString()} min`
+                : "--"
+            }
+            icon={Clock}
+          />
         </div>
       </div>
 
