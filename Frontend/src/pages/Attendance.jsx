@@ -216,6 +216,14 @@ const Attendance = () => {
       ? total
       : total + Math.max(checkInMinutes - 10 * 60, 0);
   }, 0);
+  const salaryDeductionDays =
+    lateMinutesThisMonth >= 180
+      ? 3
+      : lateMinutesThisMonth >= 120
+        ? 2
+        : lateMinutesThisMonth >= 90
+          ? 1
+          : 0;
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -733,6 +741,13 @@ const Attendance = () => {
               Late arrival this month ({selectedMonth || currentMonth}):
             </strong>{" "}
             {lateMinutesThisMonth} minutes
+            <p style={{ margin: "8px 0 0" }}>
+              Estimated salary deduction: {salaryDeductionDays} day(s)
+            </p>
+            <p style={{ margin: "4px 0 0", fontSize: "14px" }}>
+              Deduction rule: 90 late minutes = 1 day, 120 minutes = 2 days, and
+              180 minutes = 3 days.
+            </p>
           </div>
           <div
             style={{
