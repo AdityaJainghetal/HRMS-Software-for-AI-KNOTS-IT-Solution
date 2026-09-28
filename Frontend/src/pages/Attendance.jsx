@@ -3,6 +3,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useAuth } from "../contexts/AuthContext";
+import "./Attendance.css";
 
 const Attendance = () => {
   const { user } = useAuth();
@@ -334,7 +335,7 @@ const Attendance = () => {
   };
 
   return (
-    <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
+    <div className="attendance-page">
       {isHR ? (
         // ==================== HR INTERFACE ====================
         <>
@@ -349,18 +350,23 @@ const Attendance = () => {
               border: "1px solid #ddd",
               borderRadius: "8px",
             }}
+            className="attendance-surface"
           >
             <h3>Attendance Status Legend</h3>
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(min(100%, 280px), 1fr))",
                 gap: "8px 20px",
               }}
             >
               {statusLegend.map((item, index) => (
                 <div key={index} style={{ display: "flex", gap: "10px" }}>
-                  <strong style={{ color: "#007bff", minWidth: "50px" }}>
+                  <strong
+                    style={{ color: "#007bff", minWidth: "50px" }}
+                    className="attendance-status-code"
+                  >
                     {item.code}
                   </strong>
                   <span>: {item.meaning}</span>
@@ -378,6 +384,7 @@ const Attendance = () => {
               borderRadius: "8px",
               backgroundColor: "#fff",
             }}
+            className="attendance-surface"
           >
             <h2>Filters</h2>
             <div
@@ -387,6 +394,7 @@ const Attendance = () => {
                 flexWrap: "wrap",
                 alignItems: "end",
               }}
+              className="attendance-filter-controls"
             >
               <div>
                 <label
@@ -404,11 +412,11 @@ const Attendance = () => {
                   disabled={fetchingEmployees}
                   style={{
                     padding: "10px",
-                    width: "300px",
                     borderRadius: "5px",
                     border: "1px solid #ccc",
                     fontSize: "16px",
                   }}
+                  className="attendance-employee-select"
                 >
                   <option value="">-- Select Employee --</option>
                   {employees.map((emp) => (
@@ -439,6 +447,7 @@ const Attendance = () => {
                     border: "1px solid #ccc",
                     fontSize: "16px",
                   }}
+                  className="attendance-month-input"
                 />
               </div>
 
@@ -513,6 +522,7 @@ const Attendance = () => {
               borderRadius: "8px",
               backgroundColor: "#fff",
             }}
+            className="attendance-surface"
           >
             <h2>Upload Attendance for Selected Employee</h2>
 
@@ -523,6 +533,7 @@ const Attendance = () => {
                 backgroundColor: "#e7f3ff",
                 borderRadius: "6px",
               }}
+              className="attendance-upload-selected"
             >
               <strong>Selected Employee: </strong>
               {selectedEmployeeId ? (
@@ -606,62 +617,65 @@ const Attendance = () => {
               <p>No records found.</p>
             ) : (
               <>
-                <table
-                  border="1"
-                  cellPadding="12"
-                  style={{
-                    width: "100%",
-                    borderCollapse: "collapse",
-                    textAlign: "left",
-                  }}
-                >
-                  <thead>
-                    <tr style={{ backgroundColor: "#f4f4f4" }}>
-                      <th>Name</th>
-                      <th>Date</th>
-                      <th>Status</th>
-                      <th>Check In</th>
-                      <th>Check Out</th>
-                      <th>Total Hours</th>
-                      <th>Location</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedData.map((item, index) => (
-                      <tr key={item._id || index}>
-                        <td>
-                          <strong>{item.employee?.name || "N/A"}</strong>
-                        </td>
-                        <td>{formatFullDate(item.date)}</td>
-                        <td>
-                          <select
-                            value={item.status || ""}
-                            onChange={(e) =>
-                              handleStatusChange(item, e.target.value)
-                            }
-                            disabled={statusUpdatingId === item._id}
-                            style={{
-                              padding: "8px",
-                              borderRadius: "5px",
-                              border: "1px solid #ccc",
-                              minWidth: "140px",
-                            }}
-                          >
-                            {statusOptions.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                        <td>{item.checkIn || "—"}</td>
-                        <td>{item.checkOut || "—"}</td>
-                        <td>{item.totalHours || "—"}</td>
-                        <td>{item.location || "—"}</td>
+                <div className="attendance-table-wrap">
+                  <table
+                    border="1"
+                    cellPadding="12"
+                    style={{
+                      width: "100%",
+                      borderCollapse: "collapse",
+                      textAlign: "left",
+                    }}
+                    className="attendance-records-table"
+                  >
+                    <thead>
+                      <tr style={{ backgroundColor: "#f4f4f4" }}>
+                        <th>Name</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Check In</th>
+                        <th>Check Out</th>
+                        <th>Total Hours</th>
+                        <th>Location</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {paginatedData.map((item, index) => (
+                        <tr key={item._id || index}>
+                          <td>
+                            <strong>{item.employee?.name || "N/A"}</strong>
+                          </td>
+                          <td>{formatFullDate(item.date)}</td>
+                          <td>
+                            <select
+                              value={item.status || ""}
+                              onChange={(e) =>
+                                handleStatusChange(item, e.target.value)
+                              }
+                              disabled={statusUpdatingId === item._id}
+                              style={{
+                                padding: "8px",
+                                borderRadius: "5px",
+                                border: "1px solid #ccc",
+                                minWidth: "140px",
+                              }}
+                            >
+                              {statusOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td>{item.checkIn || "—"}</td>
+                          <td>{item.checkOut || "—"}</td>
+                          <td>{item.totalHours || "—"}</td>
+                          <td>{item.location || "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
                 {totalPages > 1 && (
                   <div
@@ -725,9 +739,10 @@ const Attendance = () => {
       ) : (
         // ==================== EMPLOYEE INTERFACE ====================
         <>
-          <div className="attendance-header" style={{ marginBottom: "20px" }}>
-           
-          </div>
+          <div
+            className="attendance-header"
+            style={{ marginBottom: "20px" }}
+          ></div>
           <div
             style={{
               marginBottom: "20px",
@@ -738,6 +753,7 @@ const Attendance = () => {
               borderRadius: "8px",
               boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
             }}
+            className="attendance-summary"
           >
             <div
               style={{
@@ -771,6 +787,7 @@ const Attendance = () => {
                   fontSize: "13px",
                   fontWeight: 600,
                 }}
+                className="attendance-summary-date"
               >
                 {selectedMonth || currentMonth}
               </span>
@@ -788,8 +805,9 @@ const Attendance = () => {
                 style={{
                   padding: "14px 16px",
                   borderRadius: "6px",
-                  backgroundColor: "#fff7ed",
+                  backgroundColor: "hsl(var(--sidebar-background))",
                 }}
+                className="attendance-summary-metric attendance-summary-metric--late"
               >
                 <p
                   style={{
@@ -819,6 +837,7 @@ const Attendance = () => {
                   borderRadius: "6px",
                   backgroundColor: "#f9fafb",
                 }}
+                className="attendance-summary-metric attendance-summary-metric--deduction"
               >
                 <p
                   style={{
@@ -869,6 +888,7 @@ const Attendance = () => {
                     color: "#374151",
                     fontSize: "13px",
                   }}
+                  className="attendance-summary-rule"
                 >
                   <strong style={{ color: "#111827" }}>
                     {rule.minutes} min
@@ -890,18 +910,23 @@ const Attendance = () => {
               border: "1px solid #ddd",
               borderRadius: "8px",
             }}
+            className="attendance-surface"
           >
             <h3>Attendance Status Legend</h3>
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(min(100%, 280px), 1fr))",
                 gap: "8px 20px",
               }}
             >
               {statusLegend.map((item, index) => (
                 <div key={index} style={{ display: "flex", gap: "10px" }}>
-                  <strong style={{ color: "#007bff", minWidth: "50px" }}>
+                  <strong
+                    style={{ color: "#007bff", minWidth: "50px" }}
+                    className="attendance-status-code"
+                  >
                     {item.code}
                   </strong>
                   <span>: {item.meaning}</span>
@@ -918,9 +943,13 @@ const Attendance = () => {
               borderRadius: "8px",
               backgroundColor: "#fff",
             }}
+            className="attendance-surface"
           >
             <h2>Filter by Month</h2>
-            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <div
+              style={{ display: "flex", alignItems: "center", gap: "16px" }}
+              className="attendance-month-controls"
+            >
               <div>
                 <label
                   style={{
@@ -940,8 +969,8 @@ const Attendance = () => {
                     borderRadius: "5px",
                     border: "1px solid #ccc",
                     fontSize: "16px",
-                    width: "220px",
                   }}
+                  className="attendance-month-input"
                 />
               </div>
               <button
@@ -978,42 +1007,45 @@ const Attendance = () => {
               <p>No attendance records found.</p>
             ) : (
               <>
-                <table
-                  border="1"
-                  cellPadding="12"
-                  style={{
-                    width: "100%",
-                    borderCollapse: "collapse",
-                    textAlign: "left",
-                  }}
-                >
-                  <thead>
-                    <tr style={{ backgroundColor: "#f4f4f4" }}>
-                      <th>Date</th>
-                      <th>Status</th>
-                      <th>Check In</th>
-                      <th>Check Out</th>
-                      <th>Total Hours</th>
-                      <th>Location</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedData.map((item, index) => (
-                      <tr key={item._id || index}>
-                        <td>{formatFullDate(item.date)}</td>
-                        <td>
-                          <strong style={{ color: "#007bff" }}>
-                            {item.status}
-                          </strong>
-                        </td>
-                        <td>{item.checkIn || "—"}</td>
-                        <td>{item.checkOut || "—"}</td>
-                        <td>{item.totalHours || "—"}</td>
-                        <td>{item.location || "—"}</td>
+                <div className="attendance-table-wrap">
+                  <table
+                    border="1"
+                    cellPadding="12"
+                    style={{
+                      width: "100%",
+                      borderCollapse: "collapse",
+                      textAlign: "left",
+                    }}
+                    className="attendance-records-table attendance-records-table--employee"
+                  >
+                    <thead>
+                      <tr style={{ backgroundColor: "#f4f4f4" }}>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Check In</th>
+                        <th>Check Out</th>
+                        <th>Total Hours</th>
+                        <th>Location</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {paginatedData.map((item, index) => (
+                        <tr key={item._id || index}>
+                          <td>{formatFullDate(item.date)}</td>
+                          <td>
+                            <strong style={{ color: "#007bff" }}>
+                              {item.status}
+                            </strong>
+                          </td>
+                          <td>{item.checkIn || "—"}</td>
+                          <td>{item.checkOut || "—"}</td>
+                          <td>{item.totalHours || "—"}</td>
+                          <td>{item.location || "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
                 {totalPages > 1 && (
                   <div

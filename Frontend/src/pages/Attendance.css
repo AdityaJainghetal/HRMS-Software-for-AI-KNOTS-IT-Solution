@@ -1,0 +1,169 @@
+.attendance-page {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+.attendance-page *,
+.attendance-page *::before,
+.attendance-page *::after {
+  box-sizing: border-box;
+}
+
+.attendance-filter-controls > div {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.attendance-employee-select,
+.attendance-month-input {
+  width: 100%;
+  max-width: 300px;
+}
+
+.attendance-filter-controls button {
+  min-height: 42px;
+}
+
+.attendance-month-controls {
+  flex-wrap: wrap;
+}
+
+.attendance-month-controls > div {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+.attendance-month-controls button {
+  min-height: 42px;
+}
+
+.attendance-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.attendance-records-table {
+  min-width: 760px;
+  border-color: #d1d5db;
+}
+
+.attendance-records-table th,
+.attendance-records-table td {
+  white-space: nowrap;
+}
+
+.attendance-records-table--employee {
+  min-width: 620px;
+}
+
+.dark .attendance-page .attendance-surface,
+.dark .attendance-page .attendance-summary {
+  background-color: hsl(var(--card)) !important;
+  border-color: hsl(var(--border)) !important;
+  color: hsl(var(--card-foreground));
+}
+
+.dark .attendance-page .attendance-summary {
+  border-left-color: #fb923c !important;
+}
+
+.dark .attendance-page .attendance-summary h2,
+.dark .attendance-page .attendance-summary p,
+.dark .attendance-page .attendance-summary span,
+.dark .attendance-page .attendance-summary strong {
+  color: hsl(var(--foreground)) !important;
+}
+
+.dark .attendance-page .attendance-summary-date,
+.dark .attendance-page .attendance-summary-metric--deduction,
+.dark .attendance-page .attendance-summary-rule {
+  background-color: hsl(var(--muted)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+.dark .attendance-page .attendance-summary-metric--late {
+  background-color: hsl(var(--sidebar-background)) !important;
+}
+
+.dark .attendance-page .attendance-summary-metric--late p:first-child,
+.dark .attendance-page .attendance-summary-rule strong:last-of-type {
+  color: #fdba74 !important;
+}
+
+.dark .attendance-page .attendance-upload-selected {
+  background-color: hsl(var(--accent)) !important;
+  color: hsl(var(--accent-foreground)) !important;
+}
+
+.dark .attendance-page input,
+.dark .attendance-page select {
+  background-color: hsl(var(--card)) !important;
+  border-color: hsl(var(--border)) !important;
+  color: hsl(var(--foreground)) !important;
+  color-scheme: dark;
+}
+
+.dark .attendance-page .attendance-records-table {
+  color: hsl(var(--foreground));
+}
+
+.dark .attendance-page .attendance-records-table th,
+.dark .attendance-page .attendance-records-table td {
+  border-color: hsl(var(--border));
+}
+
+.dark .attendance-page .attendance-records-table thead tr {
+  background-color: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground));
+}
+
+.dark .attendance-page .attendance-status-code {
+  color: #60a5fa !important;
+}
+
+@media (max-width: 640px) {
+  .attendance-page {
+    padding: 12px;
+  }
+
+  .attendance-page h1 {
+    font-size: 24px;
+    line-height: 1.25;
+  }
+
+  .attendance-page h2 {
+    overflow-wrap: anywhere;
+  }
+
+  .attendance-filter-controls {
+    gap: 12px !important;
+    align-items: stretch !important;
+  }
+
+  .attendance-filter-controls > div,
+  .attendance-filter-controls > button {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .attendance-employee-select,
+  .attendance-month-input {
+    max-width: 100%;
+  }
+
+  .attendance-month-controls {
+    align-items: stretch !important;
+  }
+
+  .attendance-month-controls > div,
+  .attendance-month-controls > button {
+    width: 100%;
+    max-width: 100%;
+  }
+}
