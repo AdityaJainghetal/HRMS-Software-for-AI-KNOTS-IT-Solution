@@ -154,9 +154,6 @@ const LeaveRequests = () => {
       : []),
     { value: "Maternity Leave", label: "Maternity Leave" },
     { value: "Paternity Leave", label: "Paternity Leave" },
-    { value: "Casual Leave", label: "Casual Leave" },
-    { value: "Earned Leave", label: "Earned Leave" },
-    { value: "Study Leave", label: "Study Leave" },
     { value: "Compensatory Leave", label: "Compensatory Leave" },
   ];
 
