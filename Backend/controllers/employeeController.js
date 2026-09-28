@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import transporter from "../Email/nodemailer.js";
 import getAddEmployeeMailOptions from "../Email/addEmployee.js";
 import { recalcDepartmentStats } from "../utils/departmentStats.js";
+import { getLeaveBalanceSummary } from "../utils/leavePolicy.js";
 
 const toId = (val) => {
   if (!val) return null;
@@ -55,6 +56,7 @@ const getFinancialQuarterBounds = (date) => {
     quarterEnd,
   };
 };
+
 // const getFinancialQuarterBounds = (date) => {
 //   const normalized = new Date(
 //     date.getFullYear(),
@@ -236,62 +238,16 @@ const calculateLeaveBalanceForEmployee = async (
 
   const effectiveReferenceDate =
     joinDate > referenceDate ? joinDate : referenceDate;
-  const { financialYearStart, financialYearEnd } = getFinancialYearRange(
+
+  const leaves = await Leave.find({ employee: employee._id });
+  const monthlyBalance = getLeaveBalanceSummary(
+    employee,
+    leaves,
     effectiveReferenceDate,
-  );
-  const effectiveStart =
-    joinDate > financialYearStart ? joinDate : financialYearStart;
-  if (effectiveStart > financialYearEnd) return 0;
-
-  if (employee.gender === "F" || employee.gender === "female") {
-    const monthlyBalance = await calculateFemaleMonthlyLeaveBalance(
-      employee,
-      joinDate,
-      effectiveReferenceDate,
-    );
-    const adjustment = Number(employee.leaveAdjustment || 0);
-    return Math.max(monthlyBalance + adjustment, 0);
-  }
-
-  const currentQuarterStart = getFinancialQuarterBounds(
-    effectiveReferenceDate,
-  ).quarterStart;
-  let quarterStart = getFinancialQuarterBounds(effectiveStart).quarterStart;
-  if (quarterStart < financialYearStart) {
-    quarterStart = financialYearStart;
-  }
-
-  let totalAllocation = 0;
-  while (
-    quarterStart <= currentQuarterStart &&
-    quarterStart <= financialYearEnd
-  ) {
-    const quarterEnd = new Date(
-      quarterStart.getFullYear(),
-      quarterStart.getMonth() + 3,
-      0,
-    );
-    totalAllocation += getQuarterAllocationForPeriod(
-      effectiveStart,
-      quarterStart,
-      quarterEnd,
-      employee.gender,
-    );
-    quarterStart = new Date(
-      quarterStart.getFullYear(),
-      quarterStart.getMonth() + 3,
-      1,
-    );
-  }
-
-  const approvedDays = await getApprovedLeaveDays(
-    employee._id,
-    effectiveStart,
-    effectiveReferenceDate,
-  );
+  ).monthly.available;
 
   const adjustment = Number(employee.leaveAdjustment || 0);
-  return Math.max(totalAllocation - approvedDays + adjustment, 0);
+  return Math.max(monthlyBalance + adjustment, 0);
 };
 
 export const refreshEmployeeLeaveBalance = async (
@@ -1081,6 +1037,27 @@ export const profileUpload = async (req, res) => {
     res.status(500).json({
       status: false,
       message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+export const calculateMonthlyLeaveBalance = async (req, res) => {
+  try {
+    const employeeId = req.user?._id || req.user?.id;
+    const employee = await Employee.findById(employeeId);
+    if (!employee) {
+      return res
+        .status(404)
+        .json({ status: false, message: "Employee not found." });
+    }
+    const leaves = await Leave.find({ employee: employeeId });
+    const balance = getLeaveBalanceSummary(employee, leaves);
+    return res.status(200).json({ status: true, data: balance });
+  } catch (error) {
+    return res.status(500).json({
+      status: false,
+      message: "Failed to calculate leave balance",
       error: error.message,
     });
   }

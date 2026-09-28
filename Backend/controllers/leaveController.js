@@ -1,6 +1,13 @@
 import Leave from "../models/Leave.js";
 import Employee from "../models/Employee.js";
-import { refreshEmployeeLeaveBalance } from "./employeeController.js";
+import {
+  refreshEmployeeLeaveBalance,
+  refreshEmployeeStatus,
+} from "./employeeController.js";
+import {
+  getLeaveBalanceSummary,
+  validateLeaveEligibility,
+} from "../utils/leavePolicy.js";
 
 // Create a new leave request (employee)
 export const createLeave = async (req, res) => {
@@ -13,13 +20,42 @@ export const createLeave = async (req, res) => {
         .json({ status: false, message: "All fields are required." });
     }
     const days =
-      type === "half_day" && ["sick", "personal"].includes(originalType)
+      type === "half_day" &&
+      ["sick", "personal", "plain"].includes(originalType)
         ? 0.5
         : type === "half_day"
           ? 1
           : Math.ceil(
               (new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24),
             ) + 1;
+    const employee = await Employee.findById(userId);
+    if (!employee) {
+      return res
+        .status(404)
+        .json({ status: false, message: "Employee not found." });
+    }
+    const effectiveType = type === "half_day" ? originalType : type;
+    if (effectiveType === "sick" && !req.file) {
+      return res.status(400).json({
+        status: false,
+        message: "A medical certificate PDF is required for Sick Leave.",
+      });
+    }
+    const existingLeaves = await Leave.find({ employee: userId });
+    const eligibilityError = validateLeaveEligibility(
+      employee,
+      existingLeaves,
+      {
+        type,
+        originalType,
+        startDate,
+        endDate,
+        days,
+      },
+    );
+    if (eligibilityError) {
+      return res.status(400).json({ status: false, message: eligibilityError });
+    }
     const leave = new Leave({
       employee: userId,
       type,
@@ -28,6 +64,13 @@ export const createLeave = async (req, res) => {
       endDate,
       days,
       reason,
+      medicalDocument: req.file
+        ? {
+            name: req.file.originalname,
+            url: req.file.path,
+            uploadedAt: new Date(),
+          }
+        : undefined,
       status: "pending",
     });
     await leave.save();
@@ -45,6 +88,29 @@ export const createLeave = async (req, res) => {
     return res.status(500).json({
       status: false,
       message: "Failed to submit leave request",
+      error: err.message,
+    });
+  }
+};
+
+export const getLeaveBalance = async (req, res) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    const employee = await Employee.findById(userId);
+    if (!employee) {
+      return res
+        .status(404)
+        .json({ status: false, message: "Employee not found." });
+    }
+    const leaves = await Leave.find({ employee: userId });
+    return res.status(200).json({
+      status: true,
+      data: getLeaveBalanceSummary(employee, leaves),
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: false,
+      message: "Failed to calculate leave balance",
       error: err.message,
     });
   }
@@ -100,32 +166,43 @@ export const reviewLeave = async (req, res) => {
         .status(404)
         .json({ status: false, message: "Leave request not found" });
     const previousStatus = leave.status;
+    const employee = await Employee.findById(leave.employee);
+    if (status === "approved" && employee && previousStatus !== "approved") {
+      const existingLeaves = await Leave.find({
+        employee: leave.employee,
+        _id: { $ne: leave._id },
+      });
+      const eligibilityError = validateLeaveEligibility(
+        employee,
+        existingLeaves,
+        {
+          type: leave.type,
+          originalType: leave.originalType,
+          startDate: leave.startDate,
+          endDate: leave.endDate,
+          days: leave.days,
+        },
+      );
+      if (eligibilityError) {
+        return res
+          .status(400)
+          .json({ status: false, message: eligibilityError });
+      }
+    }
     leave.status = status;
     leave.comments = comments || "";
     leave.approvalDate = new Date();
     leave.manager = req.user?._id || req.user?.id;
     await leave.save();
 
-    // Deduct leave balance when a leave is approved.
     try {
-      const employee = await Employee.findById(leave.employee);
       if (employee) {
-        if (status === "approved" && previousStatus !== "approved") {
-          if (employee.leaveBalance - leave.days < 0) {
-            return res
-              .status(400)
-              .json({ status: false, message: "Insufficient leave balance" });
-          }
-          employee.leaveBalance -= leave.days;
+        if (status === "approved") {
           employee.status = "on_leave";
-          await employee.save();
-        } else if (status === "rejected" && previousStatus === "approved") {
-          employee.leaveBalance += leave.days;
-          employee.status = "active";
-          await employee.save();
         }
-        // Recalculate leave balance for the current financial year after approval/rejection.
         await refreshEmployeeLeaveBalance(employee);
+        await employee.save();
+        await refreshEmployeeStatus(employee);
       }
     } catch (e) {
       console.error(
@@ -170,9 +247,24 @@ export const updateLeave = async (req, res) => {
     if (startDate) leave.startDate = startDate;
     if (endDate) leave.endDate = endDate;
     if (reason) leave.reason = reason;
+    const effectiveType =
+      leave.type === "half_day" ? leave.originalType : leave.type;
+    if (effectiveType === "sick" && !req.file && !leave.medicalDocument?.url) {
+      return res.status(400).json({
+        status: false,
+        message: "A medical certificate PDF is required for Sick Leave.",
+      });
+    }
+    if (req.file) {
+      leave.medicalDocument = {
+        name: req.file.originalname,
+        url: req.file.path,
+        uploadedAt: new Date(),
+      };
+    }
     leave.days =
       leave.type === "half_day" &&
-      ["sick", "personal"].includes(leave.originalType)
+      ["sick", "personal", "plain"].includes(leave.originalType)
         ? 0.5
         : leave.type === "half_day"
           ? 1
@@ -180,6 +272,25 @@ export const updateLeave = async (req, res) => {
               (new Date(leave.endDate) - new Date(leave.startDate)) /
                 (1000 * 60 * 60 * 24),
             ) + 1;
+    const employee = await Employee.findById(userId);
+    const existingLeaves = await Leave.find({
+      employee: userId,
+      _id: { $ne: leave._id },
+    });
+    const eligibilityError = validateLeaveEligibility(
+      employee,
+      existingLeaves,
+      {
+        type: leave.type,
+        originalType: leave.originalType,
+        startDate: leave.startDate,
+        endDate: leave.endDate,
+        days: leave.days,
+      },
+    );
+    if (eligibilityError) {
+      return res.status(400).json({ status: false, message: eligibilityError });
+    }
     await leave.save();
     const populated = await leave.populate([
       { path: "employee", select: "name employeeId profileImage leaveBalance" },

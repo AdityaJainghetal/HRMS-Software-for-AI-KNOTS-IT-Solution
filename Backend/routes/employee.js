@@ -7,6 +7,7 @@ import {
   editEmployee,
   deleteEmployee,
   grantLeave,
+  calculateMonthlyLeaveBalance,
 } from "../controllers/employeeController.js";
 import authorize from "../middlewares/authorize.js";
 import upload from "../config/multer.js";
@@ -44,6 +45,8 @@ router.put(
   profileUploadMiddleware,
   profileUpload,
 );
+
+router.post("/femaleleave", authorize(["hr"]),calculateMonthlyLeaveBalance);
 router.post("/:id/grant-leave", authorize(["hr"]), grantLeave);
 
 export default router;

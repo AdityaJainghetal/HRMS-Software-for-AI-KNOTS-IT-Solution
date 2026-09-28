@@ -81,6 +81,10 @@ const LeaveRequests = () => {
 
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [currentLeaveBalance, setCurrentLeaveBalance] = useState(null);
+  const [leaveBalanceSummary, setLeaveBalanceSummary] = useState(null);
+  const [currentEmployeeGender, setCurrentEmployeeGender] = useState(
+    user?.gender,
+  );
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [employees, setEmployees] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -91,6 +95,7 @@ const LeaveRequests = () => {
     startDate: "",
     endDate: "",
     reason: "",
+    medicalDocument: null,
     isHalfDay: false,
   });
 
@@ -102,29 +107,6 @@ const LeaveRequests = () => {
   });
 
   const statusOptions = ["all", "pending", "approved", "rejected"];
-  const maxSickPersonal = 2;
-
-  const getCurrentQuarterRange = (date = new Date()) => {
-    const month = date.getMonth();
-    const year = date.getFullYear();
-    const fiscalQuarterStart = 3; // April
-    const adjusted = (month - fiscalQuarterStart + 12) % 12;
-    const quarterIndex = Math.floor(adjusted / 3);
-    const startMonth = (fiscalQuarterStart + quarterIndex * 3) % 12;
-    const startYear = month >= fiscalQuarterStart ? year : year - 1;
-    const quarterStart = new Date(startYear, startMonth, 1);
-    const quarterEnd = new Date(startYear, startMonth + 3, 0, 23, 59, 59, 999);
-    return { quarterStart, quarterEnd };
-  };
-
-  const isWithinCurrentQuarter = (dateValue) => {
-    if (!dateValue) return false;
-    const date = new Date(dateValue);
-    if (Number.isNaN(date.getTime())) return false;
-    const { quarterStart, quarterEnd } = getCurrentQuarterRange();
-    return date >= quarterStart && date <= quarterEnd;
-  };
-
   const getLeaveDuration = (leave) => {
     if (leave.rawType === "half_day") {
       if (["sick", "personal"].includes(leave.originalType)) return 0.5;
@@ -134,26 +116,13 @@ const LeaveRequests = () => {
     return Number.isFinite(duration) && duration > 0 ? duration : 1;
   };
 
-  const sickUsed = leaveRequests.reduce((sum, r) => {
-    if (
-      r.leaveType === "Sick Leave" &&
-      r.status === "approved" &&
-      isWithinCurrentQuarter(r.startDate)
-    ) {
-      return sum + getLeaveDuration(r);
-    }
-    return sum;
-  }, 0);
-  const personalUsed = leaveRequests.reduce((sum, r) => {
-    if (
-      r.leaveType === "Personal Leave" &&
-      r.status === "approved" &&
-      isWithinCurrentQuarter(r.startDate)
-    ) {
-      return sum + getLeaveDuration(r);
-    }
-    return sum;
-  }, 0);
+  const sickUsed = leaveBalanceSummary?.sick?.used || 0;
+  const plainUsed = leaveBalanceSummary?.plain?.used || 0;
+  const menstrualUsed = leaveBalanceSummary?.menstrual?.used || 0;
+  const monthlyAvailable =
+    leaveBalanceSummary?.monthly?.available ?? currentLeaveBalance;
+  const isFemale =
+    currentEmployeeGender === "F" || currentEmployeeGender === "female";
 
   const formatDays = (days) => {
     if (days == null) return "—";
@@ -161,15 +130,26 @@ const LeaveRequests = () => {
   };
 
   const leaveTypeOptions = [
-    { value: "Annual Leave", label: "Annual Leave" },
+    {
+      value: "Monthly Leave",
+      label: `Monthly Leave (${formatDays(monthlyAvailable ?? 0)} available)`,
+    },
     {
       value: "Sick Leave",
-      label: `Sick Leave (${formatDays(sickUsed)}/${maxSickPersonal} used, ${formatDays(maxSickPersonal - sickUsed)} left)`,
+      label: `Sick Leave (${formatDays(sickUsed)}/1 used, ${formatDays(Math.max(1 - sickUsed, 0))} left)`,
     },
     {
-      value: "Personal Leave",
-      label: `Personal Leave (${formatDays(personalUsed)}/${maxSickPersonal} used, ${formatDays(maxSickPersonal - personalUsed)} left)`,
+      value: "Plain Leave",
+      label: `Plain Leave (${formatDays(plainUsed)}/1 used, ${formatDays(Math.max(1 - plainUsed, 0))} left)`,
     },
+    ...(isFemale
+      ? [
+          {
+            value: "Menstrual Leave",
+            label: `Menstrual Leave (${formatDays(menstrualUsed)}/1 used, ${formatDays(Math.max(1 - menstrualUsed, 0))} left)`,
+          },
+        ]
+      : []),
     { value: "Maternity Leave", label: "Maternity Leave" },
     { value: "Paternity Leave", label: "Paternity Leave" },
     { value: "Casual Leave", label: "Casual Leave" },
@@ -180,9 +160,12 @@ const LeaveRequests = () => {
 
   const toBackendType = (type) => {
     const map = {
+      "Monthly Leave": "monthly",
       "Annual Leave": "vacation",
       "Sick Leave": "sick",
-      "Personal Leave": "personal",
+      "Plain Leave": "plain",
+      "Personal Leave": "plain",
+      "Menstrual Leave": "menstrual",
       "Maternity Leave": "maternity",
       "Paternity Leave": "paternity",
       "Casual Leave": "casual",
@@ -197,12 +180,16 @@ const LeaveRequests = () => {
     if (type === "half_day") {
       if (originalType === "sick") return "Sick Leave";
       if (originalType === "personal") return "Personal Leave";
+      if (originalType === "plain") return "Plain Leave";
       return "Half-Day Leave";
     }
     const map = {
       vacation: "Annual Leave",
+      monthly: "Monthly Leave",
       sick: "Sick Leave",
       personal: "Personal Leave",
+      plain: "Plain Leave",
+      menstrual: "Menstrual Leave",
       maternity: "Maternity Leave",
       paternity: "Paternity Leave",
       casual: "Casual Leave",
@@ -219,6 +206,14 @@ const LeaveRequests = () => {
     const result = new Date(date);
     result.setDate(result.getDate() + days);
     return result;
+  };
+
+  const getMinimumPlainLeaveDate = () => {
+    const minimumDate = addDays(new Date(), 3);
+    const year = minimumDate.getFullYear();
+    const month = String(minimumDate.getMonth() + 1).padStart(2, "0");
+    const day = String(minimumDate.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   };
 
   const addMonths = (date, months) => {
@@ -268,6 +263,7 @@ const LeaveRequests = () => {
     duration: l.days,
     rawType: l.type,
     originalType: l.originalType,
+    medicalDocument: l.medicalDocument,
     leaveBalance: l.employee?.leaveBalance ?? null,
     reason: l.reason,
     status: l.status,
@@ -297,10 +293,24 @@ const LeaveRequests = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setCurrentLeaveBalance(res.data?.data?.leaveBalance ?? null);
+      setCurrentEmployeeGender(res.data?.data?.gender || user?.gender);
     } catch (err) {
       console.error(err);
     } finally {
       setBalanceLoading(false);
+    }
+  };
+
+  const fetchLeaveBalanceSummary = async () => {
+    if (!token) return;
+    try {
+      const res = await axios.get(`${API_BASE}/api/leave/balance`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setLeaveBalanceSummary(res.data?.data || null);
+      setCurrentLeaveBalance(res.data?.data?.monthly?.available ?? null);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -321,13 +331,17 @@ const LeaveRequests = () => {
     if (token) {
       fetchLeaves();
       fetchCurrentEmployee();
+      fetchLeaveBalanceSummary();
       if (isHR) fetchEmployees();
     }
   }, [token, userId, isHR]);
 
   const calculateDuration = (startDate, endDate, isHalfDay, leaveType) => {
     if (!startDate || !endDate) return 0;
-    if (isHalfDay && ["Sick Leave", "Personal Leave"].includes(leaveType))
+    if (
+      isHalfDay &&
+      ["Sick Leave", "Plain Leave", "Personal Leave"].includes(leaveType)
+    )
       return 0.5;
     if (isHalfDay) return 1;
     const start = new Date(startDate);
@@ -345,12 +359,12 @@ const LeaveRequests = () => {
   );
   const leaveDays = duration;
 
-  const isSpecialLeave = ["Maternity Leave", "Paternity Leave"].includes(
-    newLeave.leaveType,
-  );
-  const isRestrictedLeave = ["Sick Leave", "Personal Leave"].includes(
-    newLeave.leaveType,
-  );
+  const isRestrictedLeave = [
+    "Sick Leave",
+    "Plain Leave",
+    "Menstrual Leave",
+  ].includes(newLeave.leaveType);
+  const isMonthlyLeave = newLeave.leaveType === "Monthly Leave";
 
   const projectedRemaining =
     currentLeaveBalance != null ? currentLeaveBalance - leaveDays : null;
@@ -371,7 +385,8 @@ const LeaveRequests = () => {
       !newLeave.leaveType ||
       !newLeave.startDate ||
       !newLeave.endDate ||
-      !newLeave.reason
+      !newLeave.reason ||
+      (newLeave.leaveType === "Sick Leave" && !newLeave.medicalDocument)
     ) {
       toast.error("Please fill in all required fields");
       return;
@@ -382,14 +397,28 @@ const LeaveRequests = () => {
       return;
     }
 
+    if (
+      newLeave.leaveType === "Plain Leave" &&
+      newLeave.startDate < getMinimumPlainLeaveDate()
+    ) {
+      toast.error(
+        "Plain Leave must be requested at least 3 calendar days in advance.",
+      );
+      return;
+    }
+
     if (isRestrictedLeave) {
       const used =
-        newLeave.leaveType === "Sick Leave" ? sickUsed : personalUsed;
-      const remaining = maxSickPersonal - used;
+        newLeave.leaveType === "Sick Leave"
+          ? sickUsed
+          : newLeave.leaveType === "Plain Leave"
+            ? plainUsed
+            : menstrualUsed;
+      const remaining = Math.max(1 - used, 0);
 
-      if (used >= maxSickPersonal) {
+      if (used >= 1) {
         toast.error(
-          `You have already used maximum ${maxSickPersonal} ${newLeave.leaveType}.`,
+          `You have already used this month's ${newLeave.leaveType} allowance.`,
         );
         return;
       }
@@ -402,7 +431,7 @@ const LeaveRequests = () => {
     }
 
     if (
-      !isSpecialLeave &&
+      isMonthlyLeave &&
       projectedRemaining !== null &&
       projectedRemaining < 0
     ) {
@@ -419,7 +448,7 @@ const LeaveRequests = () => {
     setShowSubmitConfirm(false);
 
     try {
-      let payload = {
+      const payload = {
         type: newLeave.isHalfDay
           ? "half_day"
           : toBackendType(newLeave.leaveType),
@@ -431,13 +460,24 @@ const LeaveRequests = () => {
       if (newLeave.isHalfDay) {
         if (newLeave.leaveType === "Sick Leave") {
           payload.originalType = "sick";
-        } else if (newLeave.leaveType === "Personal Leave") {
-          payload.originalType = "personal";
+        } else if (newLeave.leaveType === "Plain Leave") {
+          payload.originalType = "plain";
         }
       }
 
-      await axios.post(`${API_BASE}/api/leave`, payload, {
-        headers: { Authorization: `Bearer ${token}` },
+      const formData = new FormData();
+      Object.entries(payload).forEach(([key, value]) =>
+        formData.append(key, value),
+      );
+      if (newLeave.medicalDocument) {
+        formData.append("medicalDocument", newLeave.medicalDocument);
+      }
+
+      await axios.post(`${API_BASE}/api/leave`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
       });
 
       setNewLeave({
@@ -445,12 +485,13 @@ const LeaveRequests = () => {
         startDate: "",
         endDate: "",
         reason: "",
+        medicalDocument: null,
         isHalfDay: false,
       });
       setShowAddDialog(false);
 
       await fetchLeaves();
-      await fetchCurrentEmployee();
+      await Promise.all([fetchCurrentEmployee(), fetchLeaveBalanceSummary()]);
       toast.success("Leave request submitted successfully!");
 
       postActivity({
@@ -548,6 +589,7 @@ const LeaveRequests = () => {
       );
       await fetchLeaves();
       await fetchCurrentEmployee();
+      await fetchLeaveBalanceSummary();
       toast.success(`Leave request ${status} successfully!`);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to update request");
@@ -562,7 +604,7 @@ const LeaveRequests = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setLeaveRequests((prev) => prev.filter((r) => r.id !== id));
-      await fetchCurrentEmployee();
+      await Promise.all([fetchCurrentEmployee(), fetchLeaveBalanceSummary()]);
       toast.success("Leave request cancelled");
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to cancel request");
@@ -672,7 +714,7 @@ const LeaveRequests = () => {
                     </Select>
                   </div>
 
-                  {["Sick Leave", "Personal Leave"].includes(
+                  {["Sick Leave", "Plain Leave"].includes(
                     newLeave.leaveType,
                   ) && (
                     <div className="flex items-center space-x-2">
@@ -696,11 +738,35 @@ const LeaveRequests = () => {
                     </div>
                   )}
 
+                  {newLeave.leaveType === "Sick Leave" && (
+                    <div>
+                      <Label htmlFor="medicalDocument">
+                        Medical Certificate (PDF, required)
+                      </Label>
+                      <Input
+                        id="medicalDocument"
+                        type="file"
+                        accept="application/pdf,.pdf"
+                        onChange={(event) =>
+                          setNewLeave((previous) => ({
+                            ...previous,
+                            medicalDocument: event.target.files?.[0] || null,
+                          }))
+                        }
+                      />
+                    </div>
+                  )}
+
                   <div>
                     <Label htmlFor="startDate">Start Date</Label>
                     <Input
                       id="startDate"
                       type="date"
+                      min={
+                        newLeave.leaveType === "Plain Leave"
+                          ? getMinimumPlainLeaveDate()
+                          : undefined
+                      }
                       value={newLeave.startDate}
                       onChange={(e) => {
                         const newStart = e.target.value;
@@ -715,6 +781,11 @@ const LeaveRequests = () => {
                         );
                       }}
                     />
+                    {newLeave.leaveType === "Plain Leave" && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Plain Leave requires at least 3 calendar days’ notice.
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -751,8 +822,10 @@ const LeaveRequests = () => {
                         {newLeave.leaveType}:{" "}
                         {newLeave.leaveType === "Sick Leave"
                           ? sickUsed
-                          : personalUsed}{" "}
-                        / 2 used
+                          : newLeave.leaveType === "Plain Leave"
+                            ? plainUsed
+                            : menstrualUsed}{" "}
+                        / 1 used
                       </p>
                     </div>
                   )}
@@ -772,8 +845,15 @@ const LeaveRequests = () => {
                       <p className="text-2xl font-semibold">
                         {formatDays(currentLeaveBalance)} day(s)
                       </p>
+                      {leaveBalanceSummary?.monthly && (
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          {leaveBalanceSummary.financialYear} financial year ·{" "}
+                          {formatDays(leaveBalanceSummary.monthly.carryForward)}{" "}
+                          carried forward
+                        </p>
+                      )}
 
-                      {!isSpecialLeave && projectedRemaining !== null && (
+                      {isMonthlyLeave && projectedRemaining !== null && (
                         <p
                           className={`mt-2 text-sm font-medium ${projectedRemaining < 0 ? "text-destructive" : "text-emerald-600"}`}
                         >
@@ -1059,10 +1139,11 @@ const LeaveRequests = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {formatDays(sickUsed)} / 2
+                    {formatDays(sickUsed)} / 1
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    used • {formatDays(maxSickPersonal - sickUsed)} left
+                    used • {formatDays(Math.max(1 - sickUsed, 0))} left this
+                    month
                   </p>
                 </CardContent>
               </Card>
@@ -1072,20 +1153,63 @@ const LeaveRequests = () => {
               <Card className="dashboard-card">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    Personal Leave
+                    Plain Leave
                   </CardTitle>
                   <Clock className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {formatDays(personalUsed)} / 2
+                    {formatDays(plainUsed)} / 1
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    used • {formatDays(maxSickPersonal - personalUsed)} left
+                    used • {formatDays(Math.max(1 - plainUsed, 0))} left this
+                    month
                   </p>
                 </CardContent>
               </Card>
             </div>
+
+            <div className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]">
+              <Card className="dashboard-card">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Half Days Taken
+                  </CardTitle>
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {leaveBalanceSummary?.halfDays?.taken ?? 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    approved · {leaveBalanceSummary?.halfDays?.pending ?? 0}{" "}
+                    pending
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {isFemale && (
+              <div className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]">
+                <Card className="dashboard-card">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Menstrual Leave
+                    </CardTitle>
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {formatDays(menstrualUsed)} / 1
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      used · {formatDays(Math.max(1 - menstrualUsed, 0))} left
+                      this month
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
             <div className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]">
               <Card className="dashboard-card">
@@ -1140,7 +1264,6 @@ const LeaveRequests = () => {
           </div>
         </CardContent>
       </Card>
-      
 
       {/* Leave Requests Table */}
       <Card className="data-table">
@@ -1188,6 +1311,7 @@ const LeaveRequests = () => {
                     </div>
                   </div>
                 </TableCell>
+
                 <TableCell>{request.leaveType}</TableCell>
                 <TableCell>{request.reason || "—"}</TableCell>
                 <TableCell>
@@ -1208,6 +1332,25 @@ const LeaveRequests = () => {
                 </TableCell>
                 <TableCell>
                   <div className="flex space-x-2">
+                    {request.medicalDocument?.url && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-2 whitespace-nowrap"
+                        asChild
+                      >
+                        <a
+                          href={request.medicalDocument.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          aria-label="Open medical certificate PDF"
+                          title="Open medical certificate PDF"
+                        >
+                          <FileText className="h-4 w-4" />
+                          Medical Certificate (PDF)
+                        </a>
+                      </Button>
+                    )}
                     {isHR && request.status === "pending" && (
                       <>
                         <Button

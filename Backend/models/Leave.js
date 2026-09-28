@@ -11,7 +11,10 @@ const leaveSchema = new mongoose.Schema(
       type: String,
       enum: [
         "vacation",
+        "monthly",
         "sick",
+        "plain",
+        "menstrual",
         "personal",
         "maternity",
         "paternity",
@@ -26,13 +29,18 @@ const leaveSchema = new mongoose.Schema(
     },
     originalType: {
       type: String,
-      enum: ["sick", "personal"],
+      enum: ["sick", "personal", "plain"],
       default: null,
     },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
     days: { type: Number },
     reason: String,
+    medicalDocument: {
+      name: String,
+      url: String,
+      uploadedAt: Date,
+    },
     status: {
       type: String,
       enum: ["pending", "approved", "rejected"],
