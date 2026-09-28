@@ -46,6 +46,24 @@ import {
 } from "lucide-react";
 const API_URL = import.meta.env.VITE_API_URL;
 
+const toCheckInMinutes = (value) => {
+  const match = String(value || "")
+    .trim()
+    .match(/^(\d{1,2}):(\d{2})(?:\s*([ap])\.?m\.?)?$/i);
+  if (!match) return null;
+
+  let hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const meridiem = match[3]?.toLowerCase();
+  if (minutes > 59 || hours > (meridiem ? 12 : 23)) return null;
+  if (meridiem) {
+    if (hours < 1) return null;
+    hours = (hours % 12) + (meridiem === "p" ? 12 : 0);
+  }
+
+  return hours * 60 + minutes;
+};
+
 const Dashboard = () => {
   const wrapperStyle = {
     paddingBottom: "20px",
@@ -243,10 +261,16 @@ const Dashboard = () => {
   // Employee personal stats
   const [hoursThisWeek, setHoursThisWeek] = useState(null);
   const [attendanceRateUser, setAttendanceRateUser] = useState(null);
+  const [lastMonthLateMinutes, setLastMonthLateMinutes] = useState(null);
   const [currentSalary, setCurrentSalary] = useState(null);
   const [leaveBalanceDays, setLeaveBalanceDays] = useState(null);
   const [salaryDebug, setSalaryDebug] = useState(null);
   const [showSalaryDebug, setShowSalaryDebug] = useState(false);
+  const lastMonthLabel = new Date(
+    new Date().getFullYear(),
+    new Date().getMonth() - 1,
+    1,
+  ).toLocaleString("en", { month: "long", year: "numeric" });
 
   useEffect(() => {
     // Fetch weekly attendance for last 5 weekdays and replace mock
@@ -479,6 +503,33 @@ const Dashboard = () => {
         const records = Array.isArray(attRes.data?.data)
           ? attRes.data.data
           : [];
+
+        const now = new Date();
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastMonthKey = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, "0")}`;
+        try {
+          const lastMonthAttendanceRes = await axios.get(
+            `${API_BASE}/api/attendance/me`,
+            {
+              params: { month: lastMonthKey },
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
+          const lastMonthRecords = Array.isArray(
+            lastMonthAttendanceRes.data?.data,
+          )
+            ? lastMonthAttendanceRes.data.data
+            : [];
+          const lateMinutes = lastMonthRecords.reduce((total, record) => {
+            const checkInMinutes = toCheckInMinutes(record.checkIn);
+            return checkInMinutes === null
+              ? total
+              : total + Math.max(checkInMinutes - 10 * 60, 0);
+          }, 0);
+          setLastMonthLateMinutes(lateMinutes);
+        } catch (error) {
+          console.error("Failed to load last month's late attendance", error);
+        }
 
         const today = new Date();
         const { start, end } = getWeekBounds(today);
@@ -1021,7 +1072,6 @@ const Dashboard = () => {
             style={statCardStyle}
             title="Attendance Rate"
             value={attendanceRateUser || "--"}
-          
             icon={UserCheck}
             trend="up"
           />
@@ -1038,8 +1088,7 @@ const Dashboard = () => {
                 ? `₹${Number(currentSalary).toLocaleString()}`
                 : "--"
             }
-             
-               trend="up"
+            trend="up"
             icon={IndianRupee}
           />
         </div>
@@ -1056,16 +1105,48 @@ const Dashboard = () => {
             icon={Calendar}
           />
         </div>
+        <div
+          style={statCardsContainerStyle}
+          className="flex-1 min-w-[200px] sm:min-w-[220px] md:min-w-[240px]"
+        >
+          <Card className="dashboard-card h-[150px]">
+            <CardContent className="flex h-full items-center justify-between gap-3 p-6">
+              <div className="min-w-0 space-y-2">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+                    Late Time
+                  </p>
+                  <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-800 dark:bg-orange-950 dark:text-orange-200">
+                    {lastMonthLabel}
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-3xl font-bold text-foreground">
+                    {lastMonthLateMinutes !== null
+                      ? lastMonthLateMinutes.toLocaleString()
+                      : "--"}
+                  </p>
+                  <span className="text-sm font-medium text-muted-foreground">
+                    min
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Previous month · after 10:00 AM
+                </p>
+              </div>
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-500/10">
+                <Clock className="h-6 w-6 text-orange-600 dark:text-orange-300" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Personal Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* My Recent Activity */}
-      
 
-
-
-          <Card className="dashboard-card">
+        <Card className="dashboard-card">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Target className="w-5 h-5 text-primary" />
@@ -1075,34 +1156,34 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="h-20 flex-col space-y-2"
-                onClick={() => navigate('/attendance')}
+                onClick={() => navigate("/attendance")}
               >
                 <UserCheck className="w-6 h-6" />
                 <span>Mark Attendance</span>
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="h-20 flex-col space-y-2"
-                onClick={() => navigate('/leave-requests')}
+                onClick={() => navigate("/leave-requests")}
               >
                 <Calendar className="w-6 h-6" />
                 <span>Request Leave</span>
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="h-20 flex-col space-y-2"
-                onClick={() => navigate('/payslips')}
+                onClick={() => navigate("/payslips")}
               >
                 <DollarSign className="w-6 h-6" />
                 <span>View Payslip</span>
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="h-20 flex-col space-y-2"
-                onClick={() => navigate('/goals')}
+                onClick={() => navigate("/goals")}
               >
                 <Award className="w-6 h-6" />
                 <span>My Goals</span>
