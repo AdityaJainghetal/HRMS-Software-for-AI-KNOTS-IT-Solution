@@ -39,6 +39,7 @@ import {
   Calendar,
   UserPlus,
   Users,
+  LoaderCircle,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -61,6 +62,7 @@ const Employees = () => {
   const [activeSection, setActiveSection] = useState(null);
 
   const [employees, setEmployees] = useState([]);
+  const [employeesLoading, setEmployeesLoading] = useState(true);
   const [leaves, setLeaves] = useState([]);
   const [departments, setDepartments] = useState([]);
 
@@ -83,6 +85,7 @@ const Employees = () => {
 
   const fetchEmployees = async () => {
     try {
+      setEmployeesLoading(true);
       const res = await axios.get(`${API_BASE}/api/employees`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -90,6 +93,8 @@ const Employees = () => {
     } catch (err) {
       console.error(err);
       toast.error(err.response?.data?.message || "Failed to load employees");
+    } finally {
+      setEmployeesLoading(false);
     }
   };
 
@@ -820,7 +825,16 @@ const Employees = () => {
       {!activeSection && (
         <Card>
           <CardContent className="p-0">
-            {viewMode === "grid" ? (
+            {employeesLoading ? (
+              <div
+                className="flex min-h-64 flex-col items-center justify-center gap-3 text-muted-foreground"
+                role="status"
+                aria-live="polite"
+              >
+                <LoaderCircle className="h-7 w-7 animate-spin text-primary" />
+                <span>Loading employees...</span>
+              </div>
+            ) : viewMode === "grid" ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
                 {filteredEmployees.map((employee) => (
                   <Card

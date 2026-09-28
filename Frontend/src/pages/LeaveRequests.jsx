@@ -141,8 +141,8 @@ const LeaveRequests = () => {
       label: `Sick Leave (${formatDays(sickUsed)}/1 used, ${formatDays(Math.max(1 - sickUsed, 0))} left)`,
     },
     {
-      value: "Plain Leave",
-      label: `Plain Leave (${formatDays(plainUsed)}/1 used, ${formatDays(Math.max(1 - plainUsed, 0))} left)`,
+      value: "Planned Leave",
+      label: `Planned Leave (${formatDays(plainUsed)}/1 used, ${formatDays(Math.max(1 - plainUsed, 0))} left)`,
     },
     ...(isFemale
       ? [
@@ -165,7 +165,7 @@ const LeaveRequests = () => {
       "Monthly Leave": "monthly",
       "Annual Leave": "vacation",
       "Sick Leave": "sick",
-      "Plain Leave": "plain",
+      "Planned Leave": "plain",
       "Personal Leave": "plain",
       "Menstrual Leave": "menstrual",
       "Maternity Leave": "maternity",
@@ -182,7 +182,7 @@ const LeaveRequests = () => {
     if (type === "half_day") {
       if (originalType === "sick") return "Sick Leave";
       if (originalType === "personal") return "Personal Leave";
-      if (originalType === "plain") return "Plain Leave";
+      if (originalType === "plain") return "Planned Leave";
       return "Half-Day Leave";
     }
     const map = {
@@ -190,7 +190,7 @@ const LeaveRequests = () => {
       monthly: "Monthly Leave",
       sick: "Sick Leave",
       personal: "Personal Leave",
-      plain: "Plain Leave",
+      plain: "Planned Leave",
       menstrual: "Menstrual Leave",
       maternity: "Maternity Leave",
       paternity: "Paternity Leave",
@@ -342,7 +342,7 @@ const LeaveRequests = () => {
     if (!startDate || !endDate) return 0;
     if (
       isHalfDay &&
-      ["Sick Leave", "Plain Leave", "Personal Leave"].includes(leaveType)
+      ["Sick Leave", "Planned Leave", "Personal Leave"].includes(leaveType)
     )
       return 0.5;
     if (isHalfDay) return 1;
@@ -363,7 +363,7 @@ const LeaveRequests = () => {
 
   const isRestrictedLeave = [
     "Sick Leave",
-    "Plain Leave",
+    "Planned Leave",
     "Menstrual Leave",
   ].includes(newLeave.leaveType);
   const isMonthlyLeave = newLeave.leaveType === "Monthly Leave";
@@ -399,11 +399,11 @@ const LeaveRequests = () => {
     }
 
     if (
-      newLeave.leaveType === "Plain Leave" &&
+      newLeave.leaveType === "Planned Leave" &&
       newLeave.startDate < getMinimumPlainLeaveDate()
     ) {
       toast.error(
-        "Plain Leave must be requested at least 3 calendar days in advance.",
+        "Planned Leave must be requested at least 3 calendar days in advance.",
       );
       return;
     }
@@ -412,7 +412,7 @@ const LeaveRequests = () => {
       const used =
         newLeave.leaveType === "Sick Leave"
           ? sickUsed
-          : newLeave.leaveType === "Plain Leave"
+          : newLeave.leaveType === "Planned Leave"
             ? plainUsed
             : menstrualUsed;
       const remaining = Math.max(1 - used, 0);
@@ -461,7 +461,7 @@ const LeaveRequests = () => {
       if (newLeave.isHalfDay) {
         if (newLeave.leaveType === "Sick Leave") {
           payload.originalType = "sick";
-        } else if (newLeave.leaveType === "Plain Leave") {
+        } else if (newLeave.leaveType === "Planned Leave") {
           payload.originalType = "plain";
         }
       }
@@ -750,7 +750,7 @@ const LeaveRequests = () => {
                     </Select>
                   </div>
 
-                  {["Sick Leave", "Plain Leave"].includes(
+                  {["Sick Leave", "Planned Leave"].includes(
                     newLeave.leaveType,
                   ) && (
                     <div className="flex items-center space-x-2">
@@ -799,7 +799,7 @@ const LeaveRequests = () => {
                       id="startDate"
                       type="date"
                       min={
-                        newLeave.leaveType === "Plain Leave"
+                        newLeave.leaveType === "Planned Leave"
                           ? getMinimumPlainLeaveDate()
                           : undefined
                       }
@@ -817,9 +817,9 @@ const LeaveRequests = () => {
                         );
                       }}
                     />
-                    {newLeave.leaveType === "Plain Leave" && (
+                    {newLeave.leaveType === "Planned Leave" && (
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Plain Leave requires at least 3 calendar days’ notice.
+                        Planned Leave requires at least 3 calendar days’ notice.
                       </p>
                     )}
                   </div>
@@ -858,7 +858,7 @@ const LeaveRequests = () => {
                         {newLeave.leaveType}:{" "}
                         {newLeave.leaveType === "Sick Leave"
                           ? sickUsed
-                          : newLeave.leaveType === "Plain Leave"
+                          : newLeave.leaveType === "Planned Leave"
                             ? plainUsed
                             : menstrualUsed}{" "}
                         / 1 used
@@ -1189,7 +1189,7 @@ const LeaveRequests = () => {
               <Card className="dashboard-card">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    Plain Leave
+                    Planned Leave
                   </CardTitle>
                   <Clock className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
