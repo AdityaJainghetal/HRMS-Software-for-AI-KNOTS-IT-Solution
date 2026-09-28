@@ -187,6 +187,36 @@ const Attendance = () => {
     currentPage * PAGE_SIZE,
   );
 
+  const getCheckInMinutes = (value) => {
+    const match = String(value || "")
+      .trim()
+      .match(/^(\d{1,2}):(\d{2})(?:\s*([ap])\.?m\.?)?$/i);
+    if (!match) return null;
+
+    let hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    const meridiem = match[3]?.toLowerCase();
+    if (minutes > 59 || hours > (meridiem ? 12 : 23)) return null;
+    if (meridiem) {
+      if (hours < 1) return null;
+      hours = (hours % 12) + (meridiem === "p" ? 12 : 0);
+    }
+
+    return hours * 60 + minutes;
+  };
+
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const lateMinutesThisMonth = data.reduce((total, item) => {
+    const attendanceMonth = String(item.date || "").slice(0, 7);
+    if (attendanceMonth !== (selectedMonth || currentMonth)) return total;
+
+    const checkInMinutes = getCheckInMinutes(item.checkIn);
+    return checkInMinutes == null
+      ? total
+      : total + Math.max(checkInMinutes - 10 * 60, 0);
+  }, 0);
+
   useEffect(() => {
     if (currentPage > totalPages) {
       setCurrentPage(totalPages);
@@ -689,6 +719,20 @@ const Attendance = () => {
         <>
           <div className="attendance-header" style={{ marginBottom: "20px" }}>
             <h1>My Attendance</h1>
+          </div>
+          <div
+            style={{
+              marginBottom: "20px",
+              padding: "16px 20px",
+              backgroundColor: "#fff7ed",
+              border: "1px solid #fed7aa",
+              borderRadius: "8px",
+            }}
+          >
+            <strong>
+              Late arrival this month ({selectedMonth || currentMonth}):
+            </strong>{" "}
+            {lateMinutesThisMonth} minutes
           </div>
           <div
             style={{
