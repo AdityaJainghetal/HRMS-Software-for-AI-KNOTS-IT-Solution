@@ -7,6 +7,7 @@ import {
   updateLeave,
   deleteLeave,
   getLeaveBalance,
+  uploadMedicalDocument,
 } from "../controllers/leaveController.js";
 import uploadLeaveDocument from "../config/multerLeave.js";
 
@@ -31,6 +32,12 @@ router.post(
   createLeave,
 );
 router.get("/balance", authorize(["employee", "hr"]), getLeaveBalance);
+router.post(
+  "/:id/medical-document",
+  authorize(["employee"]),
+  handleMedicalDocumentUpload,
+  uploadMedicalDocument,
+);
 // List: HR gets all, employee gets own
 router.get("/", authorize(["employee", "hr"]), listLeaves);
 // HR: approve/reject

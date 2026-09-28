@@ -162,40 +162,56 @@ const Employees = () => {
   };
 
   const calculateLeaveBalanceFromJoinDate = (joinDateValue, gender) => {
-    if (!joinDateValue) return 0;
-    const joinDate = new Date(joinDateValue);
-    if (Number.isNaN(joinDate.getTime())) return 0;
+    if (!joinDateValue) return { monthly: 0, menstrual: 0, total: 0 };
+    const [joinYear, joinMonth, joinDay] = joinDateValue.split("-").map(Number);
+    const joinDate = new Date(joinYear, joinMonth - 1, joinDay);
+    if (Number.isNaN(joinDate.getTime())) {
+      return { monthly: 0, menstrual: 0, total: 0 };
+    }
 
-    if (gender === "female") return 3;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const referenceDate = joinDate > today ? joinDate : today;
+    const financialYearStartYear =
+      referenceDate.getMonth() >= 3
+        ? referenceDate.getFullYear()
+        : referenceDate.getFullYear() - 1;
+    const financialYearStart = new Date(financialYearStartYear, 3, 1);
+    let monthly = 0;
 
-    const financialYearStartMonth = 3;
-    const month = joinDate.getMonth();
-    const year = joinDate.getFullYear();
-    const adjustedMonth = (month - financialYearStartMonth + 12) % 12;
-    const quarterIndex = Math.floor(adjustedMonth / 3);
-    const quarterStartMonth = (financialYearStartMonth + quarterIndex * 3) % 12;
-    const quarterStartYear = month >= financialYearStartMonth ? year : year - 1;
-    const quarterStart = new Date(quarterStartYear, quarterStartMonth, 1);
-    const quarterEnd = new Date(quarterStartYear, quarterStartMonth + 3, 0);
+    for (let index = 0; index < 2400; index += 1) {
+      const monthIndex = joinDate.getMonth() + index;
+      const year = joinDate.getFullYear() + Math.floor(monthIndex / 12);
+      const month = monthIndex % 12;
+      const lastDay = new Date(year, month + 1, 0).getDate();
+      const accrualDate = new Date(
+        year,
+        month,
+        Math.min(joinDate.getDate(), lastDay),
+      );
+      if (accrualDate > referenceDate) break;
+      if (accrualDate >= financialYearStart) {
+        monthly += index === 0 && joinDate.getDate() > 15 ? 1 : 2;
+      }
+    }
 
-    const msPerDay = 1000 * 60 * 60 * 24;
-    const remainingDays = Math.ceil((quarterEnd - joinDate) / msPerDay) + 1;
-    const quarterDays = Math.ceil((quarterEnd - quarterStart) / msPerDay) + 1;
-    const allocation = Math.ceil((remainingDays / quarterDays) * 6);
-    return Math.min(Math.max(allocation, 1), 6);
+    const menstrual = gender === "female" ? 1 : 0;
+    return { monthly, menstrual, total: monthly + menstrual };
   };
 
-  const calculatedLeaveBalance = calculateLeaveBalanceFromJoinDate(
+  const calculatedLeaveAllocation = calculateLeaveBalanceFromJoinDate(
     newEmployee.joinDate,
     newEmployee.gender,
   );
+  const calculatedLeaveBalance = calculatedLeaveAllocation.total;
 
-  const calculatedEditLeaveBalance = editingEmployee
+  const calculatedEditLeaveAllocation = editingEmployee
     ? calculateLeaveBalanceFromJoinDate(
         editingEmployee.joinDate,
         editingEmployee.gender,
       )
-    : 0;
+    : { monthly: 0, menstrual: 0, total: 0 };
+  const calculatedEditLeaveBalance = calculatedEditLeaveAllocation.total;
 
   const handleAddEmployee = async () => {
     if (!newEmployee.name || !newEmployee.email || !newEmployee.departmentId) {
@@ -544,8 +560,8 @@ const Employees = () => {
                 />
                 <p className="text-sm text-muted-foreground">
                   {newEmployee.joinDate
-                    ? `Leave balance will be: ${calculatedLeaveBalance} days (${newEmployee.gender === "female" ? "Female: 3/month, up to 2 carry forward" : "Male: 6/quarter"})`
-                    : "Select join date to calculate leave balance (Males get 6 days/quarter, females get 3 days/month with up to 2 carried forward)"}
+                    ? `Initial balance: ${calculatedLeaveBalance} days (Monthly: ${calculatedLeaveAllocation.monthly}, Menstrual: ${calculatedLeaveAllocation.menstrual})`
+                    : "Select a join date to calculate the initial Monthly and Menstrual Leave balances."}
                 </p>
               </div>
             </div>
@@ -1165,8 +1181,8 @@ const Employees = () => {
                 />
                 <p className="text-sm text-muted-foreground">
                   {editingEmployee.joinDate
-                    ? `Leave balance will update to ${calculatedEditLeaveBalance} days when saved (${editingEmployee.gender === "female" ? "Female: 3/month, up to 2 carry forward" : "Male: 6/quarter"}).`
-                    : "Select a join date to recalculate leave balance (Gender-based calculation)."}
+                    ? `Calculated balance: ${calculatedEditLeaveBalance} days (Monthly: ${calculatedEditLeaveAllocation.monthly}, Menstrual: ${calculatedEditLeaveAllocation.menstrual}).`
+                    : "Select a join date to recalculate Monthly and Menstrual Leave balances."}
                 </p>
               </div>
             </div>

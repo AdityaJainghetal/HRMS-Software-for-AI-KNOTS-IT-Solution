@@ -76,21 +76,23 @@ const getLeaveDays = (leave, start, end) => {
 const isCountedLeave = (leave) =>
   ["pending", "approved"].includes(leave.status);
 
-const getMonthlyAccrualCount = (employee, throughDate, financialYearStart) => {
+const getMonthlyAccruedLeaves = (employee, throughDate, financialYearStart) => {
   const joinDate = dateOnly(employee.startDate);
   const through = dateOnly(throughDate);
   if (through < joinDate) return 0;
 
-  let count = 0;
+  let accruedLeaves = 0;
   for (let index = 0; index < 2400; index += 1) {
     const monthIndex = joinDate.getUTCMonth() + index;
     const year = joinDate.getUTCFullYear() + Math.floor(monthIndex / 12);
     const month = monthIndex % 12;
     const accrualDate = monthDate(year, month, joinDate.getUTCDate());
     if (accrualDate > through) break;
-    if (accrualDate >= financialYearStart) count += 1;
+    if (accrualDate >= financialYearStart) {
+      accruedLeaves += index === 0 && joinDate.getUTCDate() > 15 ? 1 : 2;
+    }
   }
-  return count;
+  return accruedLeaves;
 };
 
 export const getLeaveBalanceSummary = (
@@ -111,8 +113,11 @@ export const getLeaveBalanceSummary = (
       return sum;
     return sum + getLeaveDays(leave, financialYearStart, reference);
   }, 0);
-  const accruedMonthlyLeaves =
-    getMonthlyAccrualCount(employee, reference, financialYearStart) * 2;
+  const accruedMonthlyLeaves = getMonthlyAccruedLeaves(
+    employee,
+    reference,
+    financialYearStart,
+  );
   const halfDayRequests = leaves.filter((leave) => leave.type === "half_day");
   const usedForCategory = (category) =>
     currentMonthLeaves.reduce(
@@ -228,7 +233,7 @@ export const validateLeaveEligibility = (
         return sum;
       return sum + getLeaveDays(leave, startYear, endDate);
     }, 0);
-    const accrued = getMonthlyAccrualCount(employee, startDate, startYear) * 2;
+    const accrued = getMonthlyAccruedLeaves(employee, startDate, startYear);
     if (existingUsed + days > accrued) {
       return `Insufficient Monthly Leave balance. ${Math.max(accrued - existingUsed, 0)} day(s) available.`;
     }

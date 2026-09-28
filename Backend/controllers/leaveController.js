@@ -34,13 +34,6 @@ export const createLeave = async (req, res) => {
         .status(404)
         .json({ status: false, message: "Employee not found." });
     }
-    const effectiveType = type === "half_day" ? originalType : type;
-    if (effectiveType === "sick" && !req.file) {
-      return res.status(400).json({
-        status: false,
-        message: "A medical certificate PDF is required for Sick Leave.",
-      });
-    }
     const existingLeaves = await Leave.find({ employee: userId });
     const eligibilityError = validateLeaveEligibility(
       employee,
@@ -116,6 +109,60 @@ export const getLeaveBalance = async (req, res) => {
   }
 };
 
+export const uploadMedicalDocument = async (req, res) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    const leave = await Leave.findOne({
+      _id: req.params.id,
+      employee: userId,
+    });
+    if (!leave) {
+      return res
+        .status(404)
+        .json({ status: false, message: "Leave request not found." });
+    }
+    const isSickLeave =
+      leave.type === "sick" ||
+      (leave.type === "half_day" && leave.originalType === "sick");
+    if (!isSickLeave) {
+      return res.status(400).json({
+        status: false,
+        message:
+          "Medical certificates can only be added to Sick Leave requests.",
+      });
+    }
+    if (leave.status === "rejected") {
+      return res.status(400).json({
+        status: false,
+        message: "A rejected leave request cannot be updated.",
+      });
+    }
+    if (!req.file) {
+      return res.status(400).json({
+        status: false,
+        message: "Please select a medical certificate PDF.",
+      });
+    }
+    leave.medicalDocument = {
+      name: req.file.originalname,
+      url: req.file.path,
+      uploadedAt: new Date(),
+    };
+    await leave.save();
+    return res.status(200).json({
+      status: true,
+      message: "Medical certificate uploaded successfully.",
+      data: leave,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: false,
+      message: "Failed to upload medical certificate",
+      error: err.message,
+    });
+  }
+};
+
 // List all leave requests (HR) or my leave requests (employee)
 export const listLeaves = async (req, res) => {
   try {
@@ -167,6 +214,16 @@ export const reviewLeave = async (req, res) => {
         .json({ status: false, message: "Leave request not found" });
     const previousStatus = leave.status;
     const employee = await Employee.findById(leave.employee);
+    const isSickLeave =
+      leave.type === "sick" ||
+      (leave.type === "half_day" && leave.originalType === "sick");
+    if (status === "approved" && isSickLeave && !leave.medicalDocument?.url) {
+      return res.status(400).json({
+        status: false,
+        message:
+          "Upload the medical certificate PDF before approving Sick Leave.",
+      });
+    }
     if (status === "approved" && employee && previousStatus !== "approved") {
       const existingLeaves = await Leave.find({
         employee: leave.employee,
@@ -247,14 +304,6 @@ export const updateLeave = async (req, res) => {
     if (startDate) leave.startDate = startDate;
     if (endDate) leave.endDate = endDate;
     if (reason) leave.reason = reason;
-    const effectiveType =
-      leave.type === "half_day" ? leave.originalType : leave.type;
-    if (effectiveType === "sick" && !req.file && !leave.medicalDocument?.url) {
-      return res.status(400).json({
-        status: false,
-        message: "A medical certificate PDF is required for Sick Leave.",
-      });
-    }
     if (req.file) {
       leave.medicalDocument = {
         name: req.file.originalname,

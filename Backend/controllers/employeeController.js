@@ -240,11 +240,13 @@ const calculateLeaveBalanceForEmployee = async (
     joinDate > referenceDate ? joinDate : referenceDate;
 
   const leaves = await Leave.find({ employee: employee._id });
-  const monthlyBalance = getLeaveBalanceSummary(
+  const leaveSummary = getLeaveBalanceSummary(
     employee,
     leaves,
     effectiveReferenceDate,
-  ).monthly.available;
+  );
+  const monthlyBalance =
+    leaveSummary.monthly.available + leaveSummary.menstrual.available;
 
   const adjustment = Number(employee.leaveAdjustment || 0);
   return Math.max(monthlyBalance + adjustment, 0);

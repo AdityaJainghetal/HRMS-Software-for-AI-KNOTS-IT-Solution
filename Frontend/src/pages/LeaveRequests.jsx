@@ -57,6 +57,7 @@ import {
   FileText,
   UserCheck,
   Gift,
+  Upload,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import axios from "axios";
@@ -82,6 +83,7 @@ const LeaveRequests = () => {
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [currentLeaveBalance, setCurrentLeaveBalance] = useState(null);
   const [leaveBalanceSummary, setLeaveBalanceSummary] = useState(null);
+  const [uploadingMedicalLeaveId, setUploadingMedicalLeaveId] = useState(null);
   const [currentEmployeeGender, setCurrentEmployeeGender] = useState(
     user?.gender,
   );
@@ -385,8 +387,7 @@ const LeaveRequests = () => {
       !newLeave.leaveType ||
       !newLeave.startDate ||
       !newLeave.endDate ||
-      !newLeave.reason ||
-      (newLeave.leaveType === "Sick Leave" && !newLeave.medicalDocument)
+      !newLeave.reason
     ) {
       toast.error("Please fill in all required fields");
       return;
@@ -611,6 +612,41 @@ const LeaveRequests = () => {
     }
   };
 
+  const handleMedicalDocumentUpload = async (leaveId, file) => {
+    if (!file) return;
+    if (
+      file.type !== "application/pdf" ||
+      !file.name.toLowerCase().endsWith(".pdf")
+    ) {
+      toast.error("Medical certificate must be a PDF file.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("medicalDocument", file);
+    setUploadingMedicalLeaveId(leaveId);
+    try {
+      await axios.post(
+        `${API_BASE}/api/leave/${leaveId}/medical-document`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        },
+      );
+      await fetchLeaves();
+      toast.success("Medical certificate uploaded successfully.");
+    } catch (err) {
+      toast.error(
+        err.response?.data?.message || "Failed to upload medical certificate.",
+      );
+    } finally {
+      setUploadingMedicalLeaveId(null);
+    }
+  };
+
   const getStatusBadge = (status) => {
     const variants = {
       pending: { variant: "secondary", label: "Pending", icon: Clock },
@@ -741,7 +777,7 @@ const LeaveRequests = () => {
                   {newLeave.leaveType === "Sick Leave" && (
                     <div>
                       <Label htmlFor="medicalDocument">
-                        Medical Certificate (PDF, required)
+                        Medical Certificate (PDF, upload now or later)
                       </Label>
                       <Input
                         id="medicalDocument"
@@ -1351,6 +1387,41 @@ const LeaveRequests = () => {
                         </a>
                       </Button>
                     )}
+                    {!isHR &&
+                      ["sick", "half_day"].includes(request.rawType) &&
+                      (request.rawType !== "half_day" ||
+                        request.originalType === "sick") &&
+                      !request.medicalDocument?.url &&
+                      request.status !== "rejected" && (
+                        <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-accent">
+                          <Upload className="h-4 w-4" />
+                          {uploadingMedicalLeaveId === request.id
+                            ? "Uploading..."
+                            : "Upload Certificate"}
+                          <input
+                            type="file"
+                            accept="application/pdf,.pdf"
+                            className="sr-only"
+                            disabled={uploadingMedicalLeaveId === request.id}
+                            onChange={(event) => {
+                              handleMedicalDocumentUpload(
+                                request.id,
+                                event.target.files?.[0],
+                              );
+                              event.target.value = "";
+                            }}
+                          />
+                        </label>
+                      )}
+                    {isHR &&
+                      ["sick", "half_day"].includes(request.rawType) &&
+                      (request.rawType !== "half_day" ||
+                        request.originalType === "sick") &&
+                      !request.medicalDocument?.url && (
+                        <span className="self-center whitespace-nowrap text-xs text-amber-600">
+                          Medical certificate pending
+                        </span>
+                      )}
                     {isHR && request.status === "pending" && (
                       <>
                         <Button
