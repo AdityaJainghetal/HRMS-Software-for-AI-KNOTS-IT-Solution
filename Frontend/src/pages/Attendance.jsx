@@ -726,28 +726,161 @@ const Attendance = () => {
         // ==================== EMPLOYEE INTERFACE ====================
         <>
           <div className="attendance-header" style={{ marginBottom: "20px" }}>
-            <h1>My Attendance</h1>
+           
           </div>
           <div
             style={{
               marginBottom: "20px",
-              padding: "16px 20px",
-              backgroundColor: "#fff7ed",
-              border: "1px solid #fed7aa",
+              padding: "20px",
+              backgroundColor: "#ffffff",
+              border: "1px solid #e5e7eb",
+              borderLeft: "4px solid #ea580c",
               borderRadius: "8px",
+              boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
             }}
           >
-            <strong>
-              Late arrival this month ({selectedMonth || currentMonth}):
-            </strong>{" "}
-            {lateMinutesThisMonth} minutes
-            <p style={{ margin: "8px 0 0" }}>
-              Estimated salary deduction: {salaryDeductionDays} day(s)
-            </p>
-            <p style={{ margin: "4px 0 0", fontSize: "14px" }}>
-              Deduction rule: 90 late minutes = 1 day, 120 minutes = 2 days, and
-              180 minutes = 3 days.
-            </p>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: "8px 16px",
+              }}
+            >
+              <div>
+                <h2 style={{ margin: 0, fontSize: "18px", color: "#111827" }}>
+                  Monthly Attendance Summary
+                </h2>
+                <p
+                  style={{
+                    margin: "4px 0 0",
+                    color: "#6b7280",
+                    fontSize: "14px",
+                  }}
+                >
+                  Late arrival is counted after 10:00 AM
+                </p>
+              </div>
+              <span
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: "999px",
+                  backgroundColor: "#f3f4f6",
+                  color: "#374151",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                }}
+              >
+                {selectedMonth || currentMonth}
+              </span>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+                gap: "12px",
+                marginTop: "18px",
+              }}
+            >
+              <div
+                style={{
+                  padding: "14px 16px",
+                  borderRadius: "6px",
+                  backgroundColor: "#fff7ed",
+                }}
+              >
+                <p
+                  style={{
+                    margin: 0,
+                    color: "#9a3412",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                  }}
+                >
+                  TOTAL LATE TIME
+                </p>
+                <p
+                  style={{
+                    margin: "5px 0 0",
+                    color: "#7c2d12",
+                    fontSize: "26px",
+                    fontWeight: 700,
+                  }}
+                >
+                  {lateMinutesThisMonth}{" "}
+                  <span style={{ fontSize: "15px", fontWeight: 500 }}>min</span>
+                </p>
+              </div>
+              <div
+                style={{
+                  padding: "14px 16px",
+                  borderRadius: "6px",
+                  backgroundColor: "#f9fafb",
+                }}
+              >
+                <p
+                  style={{
+                    margin: 0,
+                    color: "#4b5563",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                  }}
+                >
+                  ESTIMATED SALARY DEDUCTION
+                </p>
+                <p
+                  style={{
+                    margin: "5px 0 0",
+                    color: "#111827",
+                    fontSize: "26px",
+                    fontWeight: 700,
+                  }}
+                >
+                  {salaryDeductionDays}{" "}
+                  <span style={{ fontSize: "15px", fontWeight: 500 }}>
+                    day(s)
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "8px",
+                marginTop: "14px",
+              }}
+            >
+              {[
+                { minutes: 90, days: 1 },
+                { minutes: 120, days: 2 },
+                { minutes: 180, days: 3 },
+              ].map((rule) => (
+                <div
+                  key={rule.minutes}
+                  style={{
+                    flex: "1 1 150px",
+                    padding: "9px 12px",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "6px",
+                    color: "#374151",
+                    fontSize: "13px",
+                  }}
+                >
+                  <strong style={{ color: "#111827" }}>
+                    {rule.minutes} min
+                  </strong>
+                  <span> late = </span>
+                  <strong style={{ color: "#c2410c" }}>
+                    {rule.days} day(s)
+                  </strong>
+                  <span> deduction</span>
+                </div>
+              ))}
+            </div>
           </div>
           <div
             style={{
