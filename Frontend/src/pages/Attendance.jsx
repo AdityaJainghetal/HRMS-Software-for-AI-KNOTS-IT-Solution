@@ -190,30 +190,39 @@ const Attendance = () => {
   const getCheckInMinutes = (value) => {
     const match = String(value || "")
       .trim()
-      .match(/^(\d{1,2}):(\d{2})(?:\s*([ap])\.?m\.?)?$/i);
+      .match(/^(\d{1,2}):(\d{2})(?:\s*([ap])[\s.:;]*m\.?)?$/i);
     if (!match) return null;
 
     let hours = Number(match[1]);
     const minutes = Number(match[2]);
     const meridiem = match[3]?.toLowerCase();
-    if (minutes > 59 || hours > (meridiem ? 12 : 23)) return null;
+    if (minutes > 59 || hours > 23) return null;
     if (meridiem) {
       if (hours < 1) return null;
-      hours = (hours % 12) + (meridiem === "p" ? 12 : 0);
+      if (hours <= 12) {
+        hours = (hours % 12) + (meridiem === "p" ? 12 : 0);
+      }
     }
 
     return hours * 60 + minutes;
   };
 
   const reportMonth = selectedMonth || getLastMonth();
+  const getLateMinutes = (checkIn) => {
+    const checkInMinutes = getCheckInMinutes(checkIn);
+    if (checkInMinutes == null || checkInMinutes >= 18 * 60 + 30) return null;
+
+    const secondHalfStart = 14 * 60 + 30;
+    const lateThreshold =
+      checkInMinutes >= secondHalfStart ? secondHalfStart : 10 * 60;
+    return Math.max(checkInMinutes - lateThreshold, 0);
+  };
   const lateEntriesThisMonth = data.filter((item) => {
     if (String(item.date || "").slice(0, 7) !== reportMonth) return false;
-    const checkInMinutes = getCheckInMinutes(item.checkIn);
-    return checkInMinutes != null && checkInMinutes > 10 * 60;
+    return (getLateMinutes(item.checkIn) || 0) > 0;
   });
   const lateMinutesThisMonth = lateEntriesThisMonth.reduce((total, item) => {
-    const checkInMinutes = getCheckInMinutes(item.checkIn);
-    return total + Math.max(checkInMinutes - 10 * 60, 0);
+    return total + getLateMinutes(item.checkIn);
   }, 0);
   const lateDaysThisMonth = lateEntriesThisMonth.length;
   const salaryDeductionDays =
@@ -545,7 +554,8 @@ const Attendance = () => {
                     )?.name || "Selected Employee"}
                   </h2>
                   <p style={{ margin: "4px 0 0", color: "#6b7280" }}>
-                    Late arrival is counted after 10:00 AM.
+                    First half starts at 10:00 AM, second half at 2:30 PM.
+                    Check-ins at or after 6:30 PM are ignored.
                   </p>
                 </div>
                 <strong className="attendance-summary-date">
@@ -919,7 +929,8 @@ const Attendance = () => {
                     fontSize: "14px",
                   }}
                 >
-                  Late arrival is counted after 10:00 AM
+                  First half starts at 10:00 AM; second half starts at 2:30 PM.
+                  Check-ins at or after 6:30 PM are ignored.
                 </p>
               </div>
               <span
