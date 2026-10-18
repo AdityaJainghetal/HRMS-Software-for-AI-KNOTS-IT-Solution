@@ -74,6 +74,7 @@ const LeaveRequests = () => {
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [showApproveConfirm, setShowApproveConfirm] = useState(false);
   const [pendingReview, setPendingReview] = useState({ id: null, status: "" });
+  const [approvalOverrideReason, setApprovalOverrideReason] = useState("");
 
   const API_BASE = API_URL;
   const token =
@@ -567,19 +568,28 @@ const LeaveRequests = () => {
 
   const openApproveConfirm = (id, status) => {
     setPendingReview({ id, status });
+    setApprovalOverrideReason("");
     setShowApproveConfirm(true);
   };
 
-  const handleApproveReject = async () => {
+  const handleApproveReject = async (forceApprove = false) => {
     const { id, status } = pendingReview;
     if (!id || !status) return;
+    if (forceApprove && approvalOverrideReason.trim().length < 10) {
+      toast.error("Please enter an override reason of at least 10 characters.");
+      return;
+    }
 
     setShowApproveConfirm(false);
 
     try {
       await axios.patch(
         `${API_BASE}/api/leave/${id}/review`,
-        { status },
+        {
+          status,
+          forceApprove,
+          overrideReason: forceApprove ? approvalOverrideReason.trim() : undefined,
+        },
         {
           headers: { Authorization: `Bearer ${token}` },
         },
@@ -587,7 +597,11 @@ const LeaveRequests = () => {
       await fetchLeaves();
       await fetchCurrentEmployee();
       await fetchLeaveBalanceSummary();
-      toast.success(`Leave request ${status} successfully!`);
+      toast.success(
+        forceApprove
+          ? "Leave request force-approved with HR policy override."
+          : `Leave request ${status} successfully!`,
+      );
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to update request");
     } finally {
@@ -955,17 +969,52 @@ const LeaveRequests = () => {
                 <AlertDialogTitle>Confirm Review Action</AlertDialogTitle>
                 <AlertDialogDescription>
                   {pendingReview.status === "approved"
-                    ? "Approve this leave request?"
+                    ? "Approve this leave request? Standard approval enforces all leave policies. HR can force-approve an exception by recording a reason."
                     : "Reject this leave request?"}
                 </AlertDialogDescription>
               </AlertDialogHeader>
+              {pendingReview.status === "approved" && (
+                <div className="space-y-2">
+                  <Label htmlFor="approvalOverrideReason">
+                    HR override reason (required for force approval)
+                  </Label>
+                  <Textarea
+                    id="approvalOverrideReason"
+                    value={approvalOverrideReason}
+                    onChange={(event) =>
+                      setApprovalOverrideReason(event.target.value)
+                    }
+                    placeholder="Explain why this leave is being approved despite policy checks..."
+                    maxLength={500}
+                    rows={3}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Force approval bypasses leave eligibility and medical
+                    certificate checks. Enter at least 10 characters; this
+                    reason is saved in the approval record.
+                  </p>
+                </div>
+              )}
               <AlertDialogFooter>
                 <AlertDialogCancel>No, Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleApproveReject}>
-                  {pendingReview.status === "approved"
-                    ? "Yes, Approve"
-                    : "Yes, Reject"}
-                </AlertDialogAction>
+                {pendingReview.status === "approved" ? (
+                  <>
+                    <AlertDialogAction onClick={() => handleApproveReject()}>
+                      Approve normally
+                    </AlertDialogAction>
+                    <Button
+                      variant="destructive"
+                      onClick={() => handleApproveReject(true)}
+                      disabled={approvalOverrideReason.trim().length < 10}
+                    >
+                      Force approve
+                    </Button>
+                  </>
+                ) : (
+                  <AlertDialogAction onClick={() => handleApproveReject()}>
+                    Yes, Reject
+                  </AlertDialogAction>
+                )}
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

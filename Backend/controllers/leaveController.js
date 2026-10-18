@@ -203,9 +203,27 @@ export const reviewLeave = async (req, res) => {
     if (req.user?.role !== "hr")
       return res.status(403).json({ status: false, message: "Forbidden" });
     const { id } = req.params;
-    const { status, comments } = req.body;
+    const { status, comments, forceApprove = false, overrideReason } = req.body;
     if (!["approved", "rejected"].includes(status)) {
       return res.status(400).json({ status: false, message: "Invalid status" });
+    }
+    if (typeof forceApprove !== "boolean" || (forceApprove && status !== "approved")) {
+      return res.status(400).json({
+        status: false,
+        message: "Policy override is only available for HR approvals.",
+      });
+    }
+    const normalizedOverrideReason =
+      typeof overrideReason === "string" ? overrideReason.trim() : "";
+    if (
+      forceApprove &&
+      (normalizedOverrideReason.length < 10 ||
+        normalizedOverrideReason.length > 500)
+    ) {
+      return res.status(400).json({
+        status: false,
+        message: "Enter an override reason between 10 and 500 characters.",
+      });
     }
     const leave = await Leave.findById(id);
     if (!leave)
@@ -217,14 +235,24 @@ export const reviewLeave = async (req, res) => {
     const isSickLeave =
       leave.type === "sick" ||
       (leave.type === "half_day" && leave.originalType === "sick");
-    if (status === "approved" && isSickLeave && !leave.medicalDocument?.url) {
+    if (
+      status === "approved" &&
+      !forceApprove &&
+      isSickLeave &&
+      !leave.medicalDocument?.url
+    ) {
       return res.status(400).json({
         status: false,
         message:
           "Upload the medical certificate PDF before approving Sick Leave.",
       });
     }
-    if (status === "approved" && employee && previousStatus !== "approved") {
+    if (
+      status === "approved" &&
+      !forceApprove &&
+      employee &&
+      previousStatus !== "approved"
+    ) {
       const existingLeaves = await Leave.find({
         employee: leave.employee,
         _id: { $ne: leave._id },
@@ -247,9 +275,19 @@ export const reviewLeave = async (req, res) => {
       }
     }
     leave.status = status;
-    leave.comments = comments || "";
+    leave.comments = forceApprove
+      ? normalizedOverrideReason
+      : comments || "";
     leave.approvalDate = new Date();
     leave.manager = req.user?._id || req.user?.id;
+    leave.approvalOverride =
+      status === "approved" && forceApprove
+        ? {
+            reason: normalizedOverrideReason,
+            approvedBy: req.user?._id || req.user?.id,
+            approvedAt: new Date(),
+          }
+        : undefined;
     await leave.save();
 
     try {
@@ -274,7 +312,13 @@ export const reviewLeave = async (req, res) => {
     ]);
     return res
       .status(200)
-      .json({ status: true, message: `Leave ${status}`, data: populated });
+      .json({
+        status: true,
+        message: forceApprove
+          ? "Leave approved with HR policy override."
+          : `Leave ${status}`,
+        data: populated,
+      });
   } catch (err) {
     return res.status(500).json({
       status: false,

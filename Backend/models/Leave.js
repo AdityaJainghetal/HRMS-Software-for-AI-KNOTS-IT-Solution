@@ -52,6 +52,14 @@ const leaveSchema = new mongoose.Schema(
     },
     approvalDate: Date,
     comments: String,
+    approvalOverride: {
+      reason: String,
+      approvedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Employee",
+      },
+      approvedAt: Date,
+    },
   },
   {
     timestamps: true,
