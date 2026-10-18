@@ -5,6 +5,13 @@ import "react-toastify/dist/ReactToastify.css";
 import { useAuth } from "../contexts/AuthContext";
 import "./Attendance.css";
 
+const getLastMonth = () => {
+  const date = new Date();
+  date.setDate(1);
+  date.setMonth(date.getMonth() - 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+};
+
 const Attendance = () => {
   const { user } = useAuth();
   const isHR = user?.role === "hr";
@@ -18,7 +25,7 @@ const Attendance = () => {
   // HR Only States
   const [employees, setEmployees] = useState([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState(getLastMonth);
   const [searchTerm, setSearchTerm] = useState("");
 
   // Data States
@@ -120,7 +127,7 @@ const Attendance = () => {
       if (isHR) {
         const params = {};
         if (selectedEmployeeId) params.employeeId = selectedEmployeeId;
-        if (selectedMonth) params.month = selectedMonth;
+        params.month = selectedMonth || getLastMonth();
 
         res = await axios.get(
           "http://localhost:8000/api/attendance/datefilter",
@@ -130,12 +137,7 @@ const Attendance = () => {
           },
         );
       } else {
-        const params = {};
-        if (selectedMonth) {
-          params.month = selectedMonth;
-        } else {
-          params.limit = 31;
-        }
+        const params = { month: selectedMonth || getLastMonth() };
         res = await axios.get("http://localhost:8000/api/attendance/me", {
           params,
           ...config,
@@ -203,17 +205,17 @@ const Attendance = () => {
     return hours * 60 + minutes;
   };
 
-  const now = new Date();
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const lateMinutesThisMonth = data.reduce((total, item) => {
-    const attendanceMonth = String(item.date || "").slice(0, 7);
-    if (attendanceMonth !== (selectedMonth || currentMonth)) return total;
-
+  const reportMonth = selectedMonth || getLastMonth();
+  const lateEntriesThisMonth = data.filter((item) => {
+    if (String(item.date || "").slice(0, 7) !== reportMonth) return false;
     const checkInMinutes = getCheckInMinutes(item.checkIn);
-    return checkInMinutes == null
-      ? total
-      : total + Math.max(checkInMinutes - 10 * 60, 0);
+    return checkInMinutes != null && checkInMinutes > 10 * 60;
+  });
+  const lateMinutesThisMonth = lateEntriesThisMonth.reduce((total, item) => {
+    const checkInMinutes = getCheckInMinutes(item.checkIn);
+    return total + Math.max(checkInMinutes - 10 * 60, 0);
   }, 0);
+  const lateDaysThisMonth = lateEntriesThisMonth.length;
   const salaryDeductionDays =
     lateMinutesThisMonth >= 180
       ? 3
@@ -476,7 +478,7 @@ const Attendance = () => {
               <button
                 onClick={() => {
                   setSelectedEmployeeId("");
-                  setSelectedMonth("");
+                  setSelectedMonth(getLastMonth());
                   setSearchTerm("");
                 }}
                 style={{
@@ -509,6 +511,151 @@ const Attendance = () => {
               </button>
             </div>
           </div>
+
+          {selectedEmployeeId && (
+            <div
+              className="attendance-summary attendance-surface"
+              style={{
+                marginBottom: "20px",
+                padding: "20px",
+                backgroundColor: "#ffffff",
+                border: "1px solid #e5e7eb",
+                borderLeft: "4px solid #ea580c",
+                borderRadius: "8px",
+              }}
+            >
+              <div
+                className="attendance-summary-header"
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: "8px 16px",
+                }}
+              >
+                <div>
+                  <h2>
+                    Monthly Late Summary
+                    {" - "}
+                    {employees.find(
+                      (employee) =>
+                        String(employee._id || employee.id) ===
+                        String(selectedEmployeeId),
+                    )?.name || "Selected Employee"}
+                  </h2>
+                  <p style={{ margin: "4px 0 0", color: "#6b7280" }}>
+                    Late arrival is counted after 10:00 AM.
+                  </p>
+                </div>
+                <strong className="attendance-summary-date">
+                  {reportMonth}
+                </strong>
+              </div>
+              {loading ? (
+                <p>Loading late summary...</p>
+              ) : (
+                <div
+                  className="attendance-summary-metrics"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      "repeat(auto-fit, minmax(190px, 1fr))",
+                    gap: "12px",
+                    marginTop: "18px",
+                  }}
+                >
+                  <div
+                    className="attendance-summary-metric attendance-summary-metric--late"
+                    style={{
+                      padding: "14px 16px",
+                      borderRadius: "6px",
+                      backgroundColor: "hsl(var(--sidebar-background))",
+                    }}
+                  >
+                    <p
+                      style={{
+                        margin: 0,
+                        color: "#9a3412",
+                        fontSize: "13px",
+                        fontWeight: 600,
+                      }}
+                    >
+                      LATE ARRIVALS
+                    </p>
+                    <strong
+                      style={{
+                        display: "block",
+                        marginTop: "5px",
+                        color: "#7c2d12",
+                        fontSize: "26px",
+                      }}
+                    >
+                      {lateDaysThisMonth} day(s)
+                    </strong>
+                  </div>
+                  <div
+                    className="attendance-summary-metric attendance-summary-metric--late"
+                    style={{
+                      padding: "14px 16px",
+                      borderRadius: "6px",
+                      backgroundColor: "hsl(var(--sidebar-background))",
+                    }}
+                  >
+                    <p
+                      style={{
+                        margin: 0,
+                        color: "#9a3412",
+                        fontSize: "13px",
+                        fontWeight: 600,
+                      }}
+                    >
+                      TOTAL LATE TIME
+                    </p>
+                    <strong
+                      style={{
+                        display: "block",
+                        marginTop: "5px",
+                        color: "#7c2d12",
+                        fontSize: "26px",
+                      }}
+                    >
+                      {lateMinutesThisMonth} min
+                    </strong>
+                  </div>
+                  <div
+                    className="attendance-summary-metric attendance-summary-metric--deduction"
+                    style={{
+                      padding: "14px 16px",
+                      borderRadius: "6px",
+                      backgroundColor: "#f9fafb",
+                    }}
+                  >
+                    <p
+                      style={{
+                        margin: 0,
+                        color: "#4b5563",
+                        fontSize: "13px",
+                        fontWeight: 600,
+                      }}
+                    >
+                      ESTIMATED SALARY DEDUCTION
+                    </p>
+                    <strong
+                      style={{
+                        display: "block",
+                        marginTop: "5px",
+                        color: "#111827",
+                        fontSize: "26px",
+                      }}
+                    >
+                      {salaryDeductionDays} day(s)
+                    </strong>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Upload Section */}
           <div
@@ -786,7 +933,7 @@ const Attendance = () => {
                 }}
                 className="attendance-summary-date"
               >
-                {selectedMonth || currentMonth}
+                {reportMonth}
               </span>
             </div>
 
@@ -798,6 +945,36 @@ const Attendance = () => {
                 marginTop: "18px",
               }}
             >
+              <div
+                style={{
+                  padding: "14px 16px",
+                  borderRadius: "6px",
+                  backgroundColor: "hsl(var(--sidebar-background))",
+                }}
+                className="attendance-summary-metric attendance-summary-metric--late"
+              >
+                <p
+                  style={{
+                    margin: 0,
+                    color: "#9a3412",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                  }}
+                >
+                  LATE ARRIVALS
+                </p>
+                <p
+                  style={{
+                    margin: "5px 0 0",
+                    color: "#7c2d12",
+                    fontSize: "26px",
+                    fontWeight: 700,
+                  }}
+                >
+                  {lateDaysThisMonth}{" "}
+                  <span style={{ fontSize: "15px", fontWeight: 500 }}>day(s)</span>
+                </p>
+              </div>
               <div
                 style={{
                   padding: "14px 16px",
@@ -971,7 +1148,7 @@ const Attendance = () => {
                 />
               </div>
               <button
-                onClick={() => setSelectedMonth("")}
+                onClick={() => setSelectedMonth(getLastMonth())}
                 style={{
                   padding: "10px 20px",
                   backgroundColor: "#6c757d",
@@ -982,7 +1159,7 @@ const Attendance = () => {
                   height: "45px",
                 }}
               >
-                Clear Month
+                Last Month
               </button>
             </div>
           </div>

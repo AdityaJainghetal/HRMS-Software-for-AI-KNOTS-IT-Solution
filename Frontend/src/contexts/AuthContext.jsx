@@ -155,7 +155,10 @@ export const AuthProvider = ({ children }) => {
       toast.success(`Welcome back, ${data.data.user.name}!`);
       return data.data.user;
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Login failed. Please try again."));
+      const message = error.response
+        ? getApiErrorMessage(error, "Login failed. Please try again.")
+        : "Unable to connect to the server. Check your connection and try again.";
+      toast.error(message);
       throw error;
     }
   };

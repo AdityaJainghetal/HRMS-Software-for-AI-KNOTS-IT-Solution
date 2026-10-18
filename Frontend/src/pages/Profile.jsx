@@ -21,6 +21,7 @@ import {
   TabsTrigger,
 } from "../components/ui/tabs";
 import { Separator } from "../components/ui/separator";
+import { Progress } from "../components/ui/progress";
 import {
   User,
   Mail,
@@ -35,6 +36,7 @@ import {
   Lock,
   Save,
   Camera,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { getApiErrorMessage } from "../lib/apiError";
@@ -117,6 +119,36 @@ const Profile = () => {
   const [profileImage, setProfileImage] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const resumeInputRef = useRef(null);
+  const profileCompletionFields = [
+    { label: "Full name", complete: Boolean(profileData.name.trim()) },
+    { label: "Email", complete: Boolean(profileData.email.trim()) },
+    { label: "Phone number", complete: Boolean(profileData.phone.trim()) },
+    { label: "Date of birth", complete: Boolean(profileData.dateOfBirth) },
+    { label: "Address", complete: Boolean(profileData.address.trim()) },
+    { label: "Experience", complete: Boolean(profileData.experience.trim()) },
+    { label: "College / university", complete: Boolean(profileData.college.trim()) },
+    {
+      label: "Emergency contact",
+      complete: Boolean(profileData.emergencyContact.trim()),
+    },
+    {
+      label: "Emergency phone",
+      complete: Boolean(profileData.emergencyPhone.trim()),
+    },
+    {
+      label: "Profile photo",
+      complete: Boolean(user?.profileImage),
+    },
+  ];
+  const completedProfileFields = profileCompletionFields.filter(
+    (field) => field.complete,
+  ).length;
+  const profileCompletion = Math.round(
+    (completedProfileFields / profileCompletionFields.length) * 100,
+  );
+  const missingProfileFields = profileCompletionFields.filter(
+    (field) => !field.complete,
+  );
 
   // Validation helper
   const validateProfileData = () => {
@@ -505,6 +537,49 @@ const Profile = () => {
                   </Badge>
                 </div>
               </div>
+            </div>
+            <div className="mt-6 border-t pt-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold">Profile completeness</h3>
+                    <Badge variant="secondary">{profileCompletion}%</Badge>
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {completedProfileFields} of {profileCompletionFields.length}{" "}
+                    profile details completed
+                  </p>
+                </div>
+                <Progress
+                  value={profileCompletion}
+                  className="h-2 w-full sm:max-w-xs"
+                  aria-label={`Profile ${profileCompletion}% complete`}
+                />
+              </div>
+              {missingProfileFields.length > 0 ? (
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    Still needed:{" "}
+                    {missingProfileFields
+                      .map((field) => field.label)
+                      .join(", ")}
+                  </p>
+                  {!isEditing && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsEditing(true)}
+                    >
+                      Complete profile
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <p className="mt-4 flex items-center gap-2 text-sm text-green-600">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Your profile is complete.
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>

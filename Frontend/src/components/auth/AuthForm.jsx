@@ -99,9 +99,23 @@ export const AuthForm = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    const email = loginForm.email.trim().toLowerCase();
+    if (!email) {
+      toast.error("Please enter your email address.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+    if (!loginForm.password) {
+      toast.error("Please enter your password.");
+      return;
+    }
+
     setLoading(true);
     try {
-      await login(loginForm.email, loginForm.password, loginForm.role);
+      await login(email, loginForm.password, loginForm.role);
       navigate("/dashboard");
     } catch (error) {
       console.error("Login error:", error);
@@ -301,6 +315,7 @@ export const AuthForm = () => {
                     <Input
                       id="email"
                       type="email"
+                      autoComplete="email"
                       placeholder="Enter your email"
                       className="pl-10"
                       value={loginForm.email}
@@ -323,6 +338,7 @@ export const AuthForm = () => {
                     <Input
                       id="password"
                       type={showLoginPassword ? "text" : "password"}
+                      autoComplete="current-password"
                       placeholder="Enter your password"
                       className="pl-10 pr-10"
                       value={loginForm.password}

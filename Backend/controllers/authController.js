@@ -13,13 +13,27 @@ import { recalcDepartmentStats } from "../utils/departmentStats.js";
 const ACCESS_TOKEN_TTL = "15m";
 const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const REFRESH_COOKIE_NAME = "hrmsRefreshToken";
+let warnedAboutRefreshSecretFallback = false;
 
 const getRefreshSecret = () => {
   const secret = process.env.REFRESH_TOKEN_SECRET?.trim();
-  if (!secret) {
-    throw new Error("Missing REFRESH_TOKEN_SECRET configuration.");
+  if (secret) return secret;
+
+  const accessSecret = process.env.JWT_SECRET?.trim();
+  if (!accessSecret) {
+    throw new Error("Missing JWT_SECRET configuration.");
   }
-  return secret;
+  if (!warnedAboutRefreshSecretFallback) {
+    console.warn(
+      "REFRESH_TOKEN_SECRET is not configured; deriving a separate refresh-token key from JWT_SECRET. Configure REFRESH_TOKEN_SECRET in production.",
+    );
+    warnedAboutRefreshSecretFallback = true;
+  }
+
+  return crypto
+    .createHmac("sha256", accessSecret)
+    .update("hrms-refresh-token")
+    .digest();
 };
 
 const hashRefreshToken = (token) =>
@@ -156,34 +170,37 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
   const { email, password, role } = req.body;
   try {
-    if (!email || !password || !role) {
+    const normalizedEmail =
+      typeof email === "string" ? email.trim().toLowerCase() : "";
+    if (!normalizedEmail || !password || !role) {
       return res.status(400).json({
         status: false,
-        message: "All fields are required",
+        message: "Email, password, and role are required.",
+      });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      return res.status(400).json({
+        status: false,
+        message: "Please enter a valid email address.",
       });
     }
 
-    const user = await Employee.findOne({ email });
-    if (!user) {
-      return res.status(400).json({
+    const user = await Employee.findOne({ email: normalizedEmail }).collation({
+      locale: "en",
+      strength: 2,
+    });
+
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({
         status: false,
-        message: "User doesn't exist",
+        message: "Incorrect email or password.",
       });
     }
 
-    // Check if role matches
     if (user.role !== role) {
       return res.status(403).json({
         status: false,
-        message: `Role mismatch. You are registered as '${user.role}'.`,
-      });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({
-        status: false,
-        message: "Invalid credentials",
+        message: "The selected account type does not match this account.",
       });
     }
 
@@ -211,9 +228,10 @@ export const login = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error("Login failed:", error);
     res.status(500).json({
       status: false,
-      message: "Internal server error" + error,
+      message: "Unable to sign in right now. Please try again later.",
     });
   }
 };
