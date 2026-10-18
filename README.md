@@ -10,6 +10,7 @@ The project is split into two applications:
 ## Features
 
 - Role-based authentication for HR and employees
+- Short-lived access tokens with automatically renewed, revocable refresh sessions
 - Employee profiles, departments and employee directory
 - Attendance actions and CSV attendance import
 - Leave requests and approvals
@@ -61,6 +62,7 @@ EMAIL_PORT=465
 ```
 
 Use a MongoDB Atlas connection string when using Atlas. Keep `.env` private and never commit real passwords, API keys or tokens.
+The API keeps refresh tokens in an HttpOnly cookie with a sliding 30-day expiry. In production, serve the frontend and backend over HTTPS so the refresh cookie can be stored securely.
 
 ### Frontend environment
 

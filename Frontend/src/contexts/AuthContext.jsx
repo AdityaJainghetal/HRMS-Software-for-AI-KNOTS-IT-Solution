@@ -3,6 +3,42 @@ import { toast } from "react-toastify";
 import axios from "axios";
 import { getApiErrorMessage } from "../lib/apiError";
 const API_URL = import.meta.env.VITE_API_URL;
+let refreshRequest = null;
+
+const normalizeUser = (user = {}) => {
+  const rawJoinDate = user.joinDate || user.startDate;
+  return {
+    ...user,
+    id: user.id || user._id || user._doc?._id,
+    joinDate: rawJoinDate
+      ? new Date(rawJoinDate).toISOString().split("T")[0]
+      : user.joinDate || "",
+    avatar:
+      user.avatar ||
+      user.profileImage ||
+      (user.name
+        ? `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=fff`
+        : undefined),
+  };
+};
+
+const persistSession = (session) => {
+  localStorage.setItem("authToken", session.token);
+  const user = normalizeUser(session.user);
+  localStorage.setItem("userData", JSON.stringify(user));
+  return user;
+};
+
+const requestSessionRefresh = () => {
+  if (!refreshRequest) {
+    refreshRequest = axios
+      .post(`${API_URL}/api/auth/refresh`, {}, { withCredentials: true })
+      .finally(() => {
+        refreshRequest = null;
+      });
+  }
+  return refreshRequest;
+};
 
 const AuthContext = createContext();
 
@@ -19,65 +55,101 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing auth on mount
-    const token = localStorage.getItem("authToken");
-    const userData = localStorage.getItem("userData");
+    const interceptorId = axios.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const request = error.config;
+        const url = request?.url || "";
+        const isAuthRequest =
+          url.includes("/api/auth/login") ||
+          url.includes("/api/auth/register") ||
+          url.includes("/api/auth/refresh") ||
+          url.includes("/api/auth/logout");
 
-    if (token && userData) {
-      try {
-        const parsed = JSON.parse(userData);
-        // normalize avatar/profileImage fields for consistent UI usage
-        const rawJoinDate = parsed.joinDate || parsed.startDate;
-        const normalized = {
-          ...parsed,
-          id: parsed.id || parsed._id || parsed._doc?._id,
-          joinDate: rawJoinDate
-            ? new Date(rawJoinDate).toISOString().split("T")[0]
-            : parsed.joinDate || "",
-          avatar:
-            parsed.avatar ||
-            parsed.profileImage ||
-            (parsed.name
-              ? `https://ui-avatars.com/api/?name=${encodeURIComponent(parsed.name)}&background=3b82f6&color=fff`
-              : undefined),
-        };
-        setUser(normalized);
-      } catch (e) {
-        localStorage.removeItem("userData");
-        setUser(null);
+        if (
+          error.response?.status !== 401 ||
+          !request ||
+          request._retry ||
+          isAuthRequest ||
+          !localStorage.getItem("authToken")
+        ) {
+          return Promise.reject(error);
+        }
+
+        request._retry = true;
+        try {
+          const response = await requestSessionRefresh();
+          const session = response.data.data;
+          const refreshedUser = persistSession(session);
+          setUser(refreshedUser);
+          request.headers = {
+            ...request.headers,
+            Authorization: `Bearer ${session.token}`,
+          };
+          return axios(request);
+        } catch (refreshError) {
+          if (refreshError.response?.status === 401) {
+            localStorage.removeItem("authToken");
+            localStorage.removeItem("userData");
+            setUser(null);
+          } else {
+            console.error("Could not refresh authentication:", refreshError);
+          }
+          return Promise.reject(error);
+        }
+      },
+    );
+
+    return () => axios.interceptors.response.eject(interceptorId);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const restoreSession = async () => {
+      const token = localStorage.getItem("authToken");
+      const userData = localStorage.getItem("userData");
+      if (token && userData) {
+        try {
+          setUser(normalizeUser(JSON.parse(userData)));
+        } catch {
+          localStorage.removeItem("userData");
+        }
       }
-    }
-    setLoading(false);
+
+      try {
+        const response = await requestSessionRefresh();
+        const refreshedUser = persistSession(response.data.data);
+        if (active) setUser(refreshedUser);
+      } catch (error) {
+        if (error.response?.status !== 401) {
+          console.error("Could not restore authentication:", error);
+        } else {
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("userData");
+          if (active) setUser(null);
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    restoreSession();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const login = async (email, password, role) => {
     try {
-      const response = await axios.post(`${API_URL}/api/auth/login`, {
-        email,
-        password,
-        role,
-      });
+      const response = await axios.post(
+        `${API_URL}/api/auth/login`,
+        { email, password, role },
+        { withCredentials: true },
+      );
       const data = response.data;
       if (!data.status) throw new Error(data.message);
 
-      localStorage.setItem("authToken", data.data.token);
-      // normalize user before storing so frontend always has `avatar`, `id`, and `joinDate`
-      const su = data.data.user || {};
-      const rawJoinDate = su.joinDate || su.startDate;
-      const normalized = {
-        ...su,
-        id: su.id || su._id,
-        joinDate: rawJoinDate
-          ? new Date(rawJoinDate).toISOString().split("T")[0]
-          : su.joinDate || "",
-        avatar:
-          su.avatar ||
-          su.profileImage ||
-          (su.name
-            ? `https://ui-avatars.com/api/?name=${encodeURIComponent(su.name)}&background=3b82f6&color=fff`
-            : undefined),
-      };
-      localStorage.setItem("userData", JSON.stringify(normalized));
+      const normalized = persistSession(data.data);
       setUser(normalized);
 
       toast.success(`Welcome back, ${data.data.user.name}!`);
@@ -93,27 +165,12 @@ export const AuthProvider = ({ children }) => {
       const response = await axios.post(
         `${API_URL}/api/auth/register`,
         formData,
+        { withCredentials: true },
       );
       const data = response.data;
       if (!data.status) throw new Error(data.message);
 
-      localStorage.setItem("authToken", data.data.token);
-      const su = data.data.user || {};
-      const rawJoinDate = su.joinDate || su.startDate;
-      const normalized = {
-        ...su,
-        id: su.id || su._id,
-        joinDate: rawJoinDate
-          ? new Date(rawJoinDate).toISOString().split("T")[0]
-          : su.joinDate || "",
-        avatar:
-          su.avatar ||
-          su.profileImage ||
-          (su.name
-            ? `https://ui-avatars.com/api/?name=${encodeURIComponent(su.name)}&background=3b82f6&color=fff`
-            : undefined),
-      };
-      localStorage.setItem("userData", JSON.stringify(normalized));
+      const normalized = persistSession(data.data);
       setUser(normalized);
 
       toast.success("Account created successfully!");
@@ -127,6 +184,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    axios
+      .post(`${API_URL}/api/auth/logout`, {}, { withCredentials: true })
+      .catch((error) => {
+        console.error("Could not revoke authentication session:", error);
+      });
     localStorage.removeItem("authToken");
     localStorage.removeItem("userData");
     setUser(null);

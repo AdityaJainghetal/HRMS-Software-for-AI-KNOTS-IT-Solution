@@ -2,6 +2,8 @@ import express from "express";
 import {
   register,
   login,
+  refreshSession,
+  logout,
   forgetPasswordRequest,
   verifyOTP,
   resetPassword,
@@ -13,6 +15,8 @@ const router = express.Router();
 
 router.post("/register", register); 
 router.post("/login", login); 
+router.post("/refresh", refreshSession);
+router.post("/logout", logout);
 router.post("/forget-password", forgetPasswordRequest);
 router.post("/verify-otp", verifyOTP);
 router.post("/reset-password", resetPassword);

@@ -14,6 +14,18 @@ const EmployeeSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    refreshSessions: {
+      type: [
+        {
+          tokenHash: { type: String, required: true },
+          expiresAt: { type: Date, required: true },
+          previousTokenHash: String,
+          previousExpiresAt: Date,
+        },
+      ],
+      default: [],
+      select: false,
+    },
 
     // Personal Info
     name: { type: String, required: true },
