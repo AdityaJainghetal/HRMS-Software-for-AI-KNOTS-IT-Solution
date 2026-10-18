@@ -58,6 +58,7 @@ import {
   UserCheck,
   Gift,
   Upload,
+  Loader2,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import axios from "axios";
@@ -82,6 +83,7 @@ const LeaveRequests = () => {
   const userId = user?.id || user?._id;
 
   const [leaveRequests, setLeaveRequests] = useState([]);
+  const [requestsLoading, setRequestsLoading] = useState(true);
   const [currentLeaveBalance, setCurrentLeaveBalance] = useState(null);
   const [leaveBalanceSummary, setLeaveBalanceSummary] = useState(null);
   const [uploadingMedicalLeaveId, setUploadingMedicalLeaveId] = useState(null);
@@ -271,6 +273,7 @@ const LeaveRequests = () => {
   });
 
   const fetchLeaves = async () => {
+    setRequestsLoading(true);
     try {
       const res = await axios.get(`${API_BASE}/api/leave`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -282,6 +285,8 @@ const LeaveRequests = () => {
       toast.error(
         err.response?.data?.message || "Failed to load leave requests",
       );
+    } finally {
+      setRequestsLoading(false);
     }
   };
 
@@ -1548,7 +1553,16 @@ const LeaveRequests = () => {
         </div>
       )}
 
-      {filteredRequests.length === 0 && (
+      {requestsLoading ? (
+        <div
+          className="flex flex-col items-center justify-center gap-3 py-12 text-muted-foreground"
+          role="status"
+          aria-live="polite"
+        >
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p>Loading leave requests...</p>
+        </div>
+      ) : filteredRequests.length === 0 ? (
         <div className="text-center py-12">
           <Calendar className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">
@@ -1558,7 +1572,7 @@ const LeaveRequests = () => {
             Try adjusting your search or filters
           </p>
         </div>
-      )}
+      ) : null}
     </div>
   );
 };
