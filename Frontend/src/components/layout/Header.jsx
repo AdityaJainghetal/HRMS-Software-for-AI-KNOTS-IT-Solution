@@ -1,18 +1,18 @@
-import { useState, useEffect } from 'react';
-import axios from 'axios';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { useTheme } from '../../contexts/ThemeContext';
-import { Button } from '../ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
+import { useTheme } from "../../contexts/ThemeContext";
+import { Button } from "../ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-} from '../ui/dropdown-menu';
-import { Badge } from '../ui/badge';
+} from "../ui/dropdown-menu";
+import { Badge } from "../ui/badge";
 import {
   Bell,
   Settings,
@@ -32,67 +32,75 @@ import {
   Monitor,
   List,
   IndianRupee,
-} from 'lucide-react';
-import logo from '../../assets/download.png';
+  MessageCircle,
+} from "lucide-react";
+import { useChat } from "../../contexts/ChatContext";
+import logo from "../../assets/download.png";
 
 export const Header = () => {
   const { user, logout, isHR } = useAuth();
+  const { unreadCount } = useChat();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const getDepartmentName = (dept) => {
-    if (!dept) return '';
+    if (!dept) return "";
     // don't show raw ObjectId; treat 24-char hex as id
-    if (typeof dept === 'string') {
-      if (/^[0-9a-fA-F]{24}$/.test(dept)) return '';
+    if (typeof dept === "string") {
+      if (/^[0-9a-fA-F]{24}$/.test(dept)) return "";
       return dept;
     }
-    if (typeof dept === 'object' && dept.name) return dept.name;
-    return '';
+    if (typeof dept === "object" && dept.name) return dept.name;
+    return "";
   };
 
   const API_BASE = import.meta.env.VITE_API_URL;
-  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-  const [deptName, setDeptName] = useState('');
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+  const [deptName, setDeptName] = useState("");
 
   useEffect(() => {
     let mounted = true;
     const dep = user?.department;
     if (!dep) return;
-    if (typeof dep === 'object' && dep.name) {
+    if (typeof dep === "object" && dep.name) {
       setDeptName(dep.name);
       return;
     }
-    if (typeof dep === 'string' && !/^[0-9a-fA-F]{24}$/.test(dep)) {
+    if (typeof dep === "string" && !/^[0-9a-fA-F]{24}$/.test(dep)) {
       setDeptName(dep);
       return;
     }
-    if (typeof dep === 'string') {
+    if (typeof dep === "string") {
       (async () => {
         try {
-          const res = await axios.get(`${API_BASE}/api/departments/${dep}`, { headers: { Authorization: `Bearer ${token}` } });
+          const res = await axios.get(`${API_BASE}/api/departments/${dep}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
           if (!mounted) return;
-          setDeptName(res.data?.data?.name || '');
+          setDeptName(res.data?.data?.name || "");
         } catch (err) {
           // ignore
         }
       })();
     }
-    return () => { mounted = false };
+    return () => {
+      mounted = false;
+    };
   }, [user, API_BASE, token]);
 
   const toggleTheme = () => {
-    if (theme === 'light') setTheme('dark');
-    else if (theme === 'dark') setTheme('system');
-    else setTheme('light');
+    if (theme === "light") setTheme("dark");
+    else if (theme === "dark") setTheme("system");
+    else setTheme("light");
   };
 
   const getThemeIcon = () => {
     switch (theme) {
-      case 'light':
+      case "light":
         return Sun;
-      case 'dark':
+      case "dark":
         return Moon;
       default:
         return Monitor;
@@ -102,33 +110,39 @@ export const Header = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/auth');
+    navigate("/auth");
   };
 
   const navigationItems = isHR
     ? [
-        { label: 'Dashboard', href: '/dashboard', icon: Building2 },
-        { label: 'Employees', href: '/employees', icon: Users },
-        { label: 'Departments', href: '/departments', icon: Building2 },
-        { label: 'Attendance', href: '/attendance', icon: UserCheck },
+        { label: "Dashboard", href: "/dashboard", icon: Building2 },
+        { label: "Employees", href: "/employees", icon: Users },
+        { label: "Chat", href: "/chat", icon: MessageCircle },
+        { label: "Departments", href: "/departments", icon: Building2 },
+        { label: "Attendance", href: "/attendance", icon: UserCheck },
         { label: "Tasks", href: "/taskmanagement", icon: List },
-        { label: 'Salary', href: '/salary', icon: IndianRupee },
-        { label: 'Leave Requests', href: '/leave-requests', icon: Calendar },
-        { label: 'Recruitment', href: '/recruitment', icon: Briefcase },
-        { label: 'Device Management', href: '/device-management', icon: Laptop },
-        { label: 'Calendar', href: '/calendar', icon: Calendar },
+        { label: "Salary", href: "/salary", icon: IndianRupee },
+        { label: "Leave Requests", href: "/leave-requests", icon: Calendar },
+        { label: "Recruitment", href: "/recruitment", icon: Briefcase },
+        {
+          label: "Device Management",
+          href: "/device-management",
+          icon: Laptop,
+        },
+        { label: "Calendar", href: "/calendar", icon: Calendar },
         { label: "Goals", href: "/goals", icon: Briefcase },
         { label: "Settings ", href: "/settings", icon: Settings },
       ]
     : [
-        { label: 'Dashboard', href: '/dashboard', icon: Building2 },
-        { label: 'My Profile', href: '/profile', icon: User },
-        { label: 'Attendance', href: '/attendance', icon: UserCheck },
+        { label: "Dashboard", href: "/dashboard", icon: Building2 },
+        { label: "My Profile", href: "/profile", icon: User },
+        { label: "Chat", href: "/chat", icon: MessageCircle },
+        { label: "Attendance", href: "/attendance", icon: UserCheck },
         { label: "Tasks", href: "/taskmanagement", icon: List },
-        { label: 'My Salary', href: '/salary', icon: IndianRupee },
-        { label: 'Leave Requests', href: '/leave-requests', icon: Calendar },
-        { label: 'Calendar', href: '/calendar', icon: Calendar },
-        { label: 'My Devices', href: '/my-devices', icon: Laptop },
+        { label: "My Salary", href: "/salary", icon: IndianRupee },
+        { label: "Leave Requests", href: "/leave-requests", icon: Calendar },
+        { label: "Calendar", href: "/calendar", icon: Calendar },
+        { label: "My Devices", href: "/my-devices", icon: Laptop },
         { label: "Goals", href: "/goals", icon: Briefcase },
         { label: "Settings ", href: "/settings", icon: Settings },
       ];
@@ -143,11 +157,17 @@ export const Header = () => {
             className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
           >
             <div className="w-18 h-8 flex items-center justify-center">
-              <img src={logo} alt="AI KNOTS Logo" className="w-18 h-8 object-cover" />
+              <img
+                src={logo}
+                alt="AI KNOTS Logo"
+                className="w-18 h-8 object-cover"
+              />
             </div>
             <div>
               <h1 className="font-bold text-xl text-foreground">AI KNOTS</h1>
-              <p className="text-xs text-muted-foreground -mt-1">HRMS Software</p>
+              <p className="text-xs text-muted-foreground -mt-1">
+                HRMS Software
+              </p>
             </div>
           </Link>
 
@@ -164,17 +184,26 @@ export const Header = () => {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center space-x-2 hover:bg-accent">
+                <Button
+                  variant="ghost"
+                  className="flex items-center space-x-2 hover:bg-accent"
+                >
                   <Avatar className="w-8 h-8">
                     <AvatarImage src={user?.avatar} alt={user?.name} />
                     <AvatarFallback className="bg-primary text-primary-foreground">
-                      {user?.name?.split(' ').map((n) => n[0]).join('')}
+                      {user?.name
+                        ?.split(" ")
+                        .map((n) => n[0])
+                        .join("")}
                     </AvatarFallback>
                   </Avatar>
                   <div className="hidden md:block text-left">
                     <p className="text-sm font-medium">{user?.name}</p>
-                    <Badge variant={isHR ? 'default' : 'secondary'} className="text-xs">
-                      {isHR ? 'HR Manager' : 'Employee'}
+                    <Badge
+                      variant={isHR ? "default" : "secondary"}
+                      className="text-xs"
+                    >
+                      {isHR ? "HR Manager" : "Employee"}
                     </Badge>
                   </div>
                 </Button>
@@ -183,7 +212,10 @@ export const Header = () => {
                 <div className="px-2 py-1.5">
                   <p className="text-sm font-medium">{user?.name}</p>
                   <p className="text-xs text-muted-foreground">{user?.email}</p>
-                  <Badge variant={isHR ? 'default' : 'secondary'} className="text-xs mt-1">
+                  <Badge
+                    variant={isHR ? "default" : "secondary"}
+                    className="text-xs mt-1"
+                  >
                     {deptName || getDepartmentName(user?.department)}
                   </Badge>
                 </div>
@@ -201,7 +233,10 @@ export const Header = () => {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="text-destructive"
+                >
                   <LogOut className="w-4 h-4 mr-2" />
                   Sign Out
                 </DropdownMenuItem>
@@ -215,7 +250,11 @@ export const Header = () => {
               className="md:hidden"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {mobileMenuOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
             </Button>
           </div>
         </div>
@@ -234,6 +273,11 @@ export const Header = () => {
                   >
                     <Icon className="w-4 h-4" />
                     <span>{item.label}</span>
+                    {item.href === "/chat" && unreadCount > 0 && (
+                      <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-600 px-1 text-[11px] font-semibold text-white">
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </span>
+                    )}
                   </Link>
                 );
               })}

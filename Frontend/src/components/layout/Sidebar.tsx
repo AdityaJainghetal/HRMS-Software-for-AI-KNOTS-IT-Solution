@@ -1,21 +1,22 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import axios from 'axios'
-import { Link, useLocation } from "react-router-dom"
-import { useAuth } from "../../contexts/AuthContext"
-import { useTheme } from "../../contexts/ThemeContext"
-import { Button } from "../ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
+import { useTheme } from "../../contexts/ThemeContext";
+import { Button } from "../ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-} from "../ui/dropdown-menu"
-import { Badge } from "../ui/badge"
+} from "../ui/dropdown-menu";
+import { Badge } from "../ui/badge";
 import {
+  MessageCircle,
   Settings,
   User,
   LogOut,
@@ -31,101 +32,114 @@ import {
   Laptop,
   ChevronDown,
   List,
-} from "lucide-react"
-import logo  from '../../assets/download.png';
+} from "lucide-react";
+import { useChat } from "../../contexts/ChatContext";
+import logo from "../../assets/download.png";
 
 export const Sidebar = () => {
-  const { user, logout, isHR } = useAuth()
-  const { theme, setTheme } = useTheme()
-  const location = useLocation()
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  const { user, logout, isHR } = useAuth();
+  const { unreadCount } = useChat();
+  const { theme, setTheme } = useTheme();
+  const location = useLocation();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const getDepartmentName = (dept) => {
-    if (!dept) return ""
+    if (!dept) return "";
     // avoid displaying raw ObjectId; treat 24-char hex strings as ids
     if (typeof dept === "string") {
-      if (/^[0-9a-fA-F]{24}$/.test(dept)) return ""
-      return dept
+      if (/^[0-9a-fA-F]{24}$/.test(dept)) return "";
+      return dept;
     }
-    if (typeof dept === "object" && dept.name) return dept.name
-    return ""
-  }
+    if (typeof dept === "object" && dept.name) return dept.name;
+    return "";
+  };
 
-  const API_BASE = import.meta.env.VITE_API_URL
-  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null
-  const [deptName, setDeptName] = useState('')
+  const API_BASE = import.meta.env.VITE_API_URL;
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+  const [deptName, setDeptName] = useState("");
 
   useEffect(() => {
-    let mounted = true
-    const dep = user?.department
-    if (!dep) return
-    if (typeof dep === 'object' && dep.name) {
-      setDeptName(dep.name)
-      return
+    let mounted = true;
+    const dep = user?.department;
+    if (!dep) return;
+    if (typeof dep === "object" && dep.name) {
+      setDeptName(dep.name);
+      return;
     }
-    if (typeof dep === 'string' && !/^[0-9a-fA-F]{24}$/.test(dep)) {
-      setDeptName(dep)
-      return
+    if (typeof dep === "string" && !/^[0-9a-fA-F]{24}$/.test(dep)) {
+      setDeptName(dep);
+      return;
     }
-    if (typeof dep === 'string') {
-      ;(async () => {
+    if (typeof dep === "string") {
+      (async () => {
         try {
-          const res = await axios.get(`${API_BASE}/api/departments/${dep}`, { headers: { Authorization: `Bearer ${token}` } })
-          if (!mounted) return
-          setDeptName(res.data?.data?.name || '')
+          const res = await axios.get(`${API_BASE}/api/departments/${dep}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!mounted) return;
+          setDeptName(res.data?.data?.name || "");
         } catch (err) {
           // ignore
         }
-      })()
+      })();
     }
-    return () => { mounted = false }
-  }, [user, API_BASE, token])
+    return () => {
+      mounted = false;
+    };
+  }, [user, API_BASE, token]);
 
   const toggleTheme = () => {
     if (theme === "light") {
-      setTheme("dark")
+      setTheme("dark");
     } else if (theme === "dark") {
-      setTheme("system")
+      setTheme("system");
     } else {
-      setTheme("light")
+      setTheme("light");
     }
-  }
+  };
 
   const getThemeIcon = () => {
     switch (theme) {
       case "light":
-        return Sun
+        return Sun;
       case "dark":
-        return Moon
+        return Moon;
       default:
-        return Monitor
+        return Monitor;
     }
-  }
+  };
 
-  const ThemeIcon = getThemeIcon()
+  const ThemeIcon = getThemeIcon();
 
   const handleLogout = () => {
-    logout()
-  }
+    logout();
+  };
 
   const navigationItems = isHR
     ? [
         { label: "Dashboard", href: "/dashboard", icon: Building2 },
         { label: "Employees", href: "/employees", icon: Users },
+        { label: "Chat", href: "/chat", icon: MessageCircle },
         { label: "Departments", href: "/departments", icon: Building2 },
         { label: "Attendance", href: "/attendance", icon: UserCheck },
         { label: "Tasks", href: "/taskmanagement", icon: List },
         { label: "Salary", href: "/salary", icon: IndianRupee },
         { label: "Leave Requests", href: "/leave-requests", icon: Calendar },
         { label: "Recruitment", href: "/recruitment", icon: Briefcase },
-        { label: "Device Management", href: "/device-management", icon: Laptop },
-        { label: 'Calendar', href: '/calendar', icon: Calendar },
+        {
+          label: "Device Management",
+          href: "/device-management",
+          icon: Laptop,
+        },
+        { label: "Calendar", href: "/calendar", icon: Calendar },
         { label: "Goals", href: "/goals", icon: Briefcase },
         { label: "Settings ", href: "/settings", icon: Settings },
       ]
     : [
         { label: "Dashboard", href: "/dashboard", icon: Building2 },
         { label: "My Profile", href: "/profile", icon: User },
+        { label: "Chat", href: "/chat", icon: MessageCircle },
         { label: "Attendance", href: "/attendance", icon: UserCheck },
         { label: "Tasks", href: "/taskmanagement", icon: List },
         { label: "My Salary", href: "/salary", icon: IndianRupee },
@@ -134,10 +148,9 @@ export const Sidebar = () => {
         { label: "My Devices", href: "/my-devices", icon: Laptop },
         { label: "Goals", href: "/goals", icon: Briefcase },
         { label: "Settings ", href: "/settings", icon: Settings },
-      ]
+      ];
 
-
-  const isActiveLink = (href) => location.pathname === href
+  const isActiveLink = (href) => location.pathname === href;
 
   return (
     <aside
@@ -152,12 +165,18 @@ export const Sidebar = () => {
           className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
         >
           <div className="w-22 h-8 flex items-center justify-center">
-            <img src={logo} alt="AI KNOTS Logo" className="w-20 h-18 object-cover rounded" />
+            <img
+              src={logo}
+              alt="AI KNOTS Logo"
+              className="w-20 h-18 object-cover rounded"
+            />
           </div>
           {!isCollapsed && (
             <div>
               <h1 className="font-bold text-xl text-foreground">AI KNOTS</h1>
-              <p className="text-xs text-muted-foreground -mt-1">HRMS Software</p>
+              <p className="text-xs text-muted-foreground -mt-1">
+                HRMS Software
+              </p>
             </div>
           )}
         </Link>
@@ -181,7 +200,16 @@ export const Sidebar = () => {
                   title={isCollapsed ? item.label : undefined}
                 >
                   <Icon className="w-5 h-5 flex-shrink-0" />
-                  {!isCollapsed && <span className="text-sm font-medium">{item.label}</span>}
+                  {!isCollapsed && (
+                    <span className="flex-1 text-sm font-medium">
+                      {item.label}
+                    </span>
+                  )}
+                  {item.href === "/chat" && unreadCount > 0 && (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-600 px-1 text-[11px] font-semibold text-white">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
                 </Link>
               </li>
             );
@@ -211,9 +239,15 @@ export const Sidebar = () => {
               }`}
             >
               <Avatar className="w-8 h-8 flex-shrink-0">
-                <AvatarImage src={user?.profileImage || user?.avatar || "/placeholder.svg"} alt={user?.name} />
+                <AvatarImage
+                  src={user?.profileImage || user?.avatar || "/placeholder.svg"}
+                  alt={user?.name}
+                />
                 <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs">
-                  {user?.name?.split(" ").map((n) => n[0]).join("")}
+                  {user?.name
+                    ?.split(" ")
+                    .map((n) => n[0])
+                    .join("")}
                 </AvatarFallback>
               </Avatar>
               {!isCollapsed && (
@@ -230,7 +264,10 @@ export const Sidebar = () => {
             <div className="px-2 py-1.5">
               <p className="text-sm font-medium">{user?.name}</p>
               <p className="text-xs text-muted-foreground">{user?.email}</p>
-              <Badge variant={isHR ? "default" : "secondary"} className="text-xs mt-1">
+              <Badge
+                variant={isHR ? "default" : "secondary"}
+                className="text-xs mt-1"
+              >
                 {deptName || getDepartmentName(user?.department)}
               </Badge>
             </div>
@@ -248,7 +285,10 @@ export const Sidebar = () => {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+            <DropdownMenuItem
+              onClick={handleLogout}
+              className="text-destructive"
+            >
               <LogOut className="w-4 h-4 mr-2" />
               Sign Out
             </DropdownMenuItem>
@@ -270,5 +310,5 @@ export const Sidebar = () => {
         </Button>
       </div>
     </aside>
-  )
-}
+  );
+};

@@ -1,4 +1,5 @@
 import express from "express";
+import { createServer } from "node:http";
 import cors from "cors";
 import dotenv from "dotenv";
 import { fileURLToPath } from "node:url";
@@ -24,9 +25,17 @@ import jobRoutes from "./routes/jobs.js";
 import candidateRoutes from "./routes/candidates.js";
 import deviceRoutes from "./routes/device.js";
 import taskRoutes from "./routes/task.js";
+import chatRoutes from "./routes/chat.js";
+import { Server } from "socket.io";
+import attachChatSocket from "./chatSocket.js";
 dns.setServers(["8.8.8.8", "1.1.1.1", "0.0.0.0"]);
 
 const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: { origin: true, credentials: true },
+});
+attachChatSocket(io);
 connectDB();
 const PORT = process.env.PORT || 5001;
 
@@ -75,7 +84,8 @@ app.use("/api/jobs", jobRoutes);
 app.use("/api/candidates", candidateRoutes);
 app.use("/api/devices", deviceRoutes);
 app.use("/api/tasks", taskRoutes);
+app.use("/api/chat", chatRoutes);
 
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

@@ -474,7 +474,6 @@ const LeaveRequests = () => {
       await axios.post(`${API_BASE}/api/leave`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
         },
       });
 
@@ -629,7 +628,6 @@ const LeaveRequests = () => {
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
           },
         },
       );

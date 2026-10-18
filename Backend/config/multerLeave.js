@@ -5,7 +5,6 @@ import cloudinary from "./cloudinary.js";
 const storage = new CloudinaryStorage({
   cloudinary,
   params: {
-    folder: "leave-medical-certificates",
     resource_type: "raw",
     public_id: (req, file) =>
       `${Date.now()}-${file.originalname.replace(/\.pdf$/i, "")}`,

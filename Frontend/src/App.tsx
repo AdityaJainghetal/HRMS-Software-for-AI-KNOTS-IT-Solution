@@ -26,8 +26,11 @@ import NotFound from "./pages/NotFound";
 import EmployeeDevices from "./pages/EmployeeDevices";
 import HRDeviceManagement from "./pages/HRDeviceManagement";
 import TaskManagement from "./pages/TaskMangement";
+import Chat from "./pages/Chat";
+import { ChatProvider } from "./contexts/ChatContext";
 import "react-toastify/dist/ReactToastify.css";
 import { Sidebar } from "./components/layout/Sidebar";
+import ChatWidget from "./components/layout/ChatWidget.jsx";
 
 const queryClient = new QueryClient();
 
@@ -44,24 +47,29 @@ const ProtectedRoute = ({ children }) => {
 
   if (!isAuthenticated) return <AuthForm />;
 
-  return (
-    <div className="min-h-screen w-full flex flex-col">
-      {/* Header visible only on sm/md */}
-      <div className="block lg:hidden">
-        <Header />
-      </div>
-
-      <div className="flex flex-1">
-        {/* Sidebar visible only on lg */}
-        <div className="hidden lg:flex lg:flex-shrink-0">
-          <Sidebar />
-        </div>
-
-        {/* Main content */}
-        <main className="flex-1 min-w-0">{children}</main>
-      </div>
+ return (
+  <div className="min-h-screen w-full flex flex-col">
+    {/* Header visible only on sm/md */}
+    <div className="block lg:hidden">
+      <Header />
     </div>
-  );
+
+    <div className="flex flex-1">
+      {/* Sidebar visible only on lg */}
+      <div className="hidden lg:flex lg:flex-shrink-0">
+        <Sidebar />
+      </div>
+
+      {/* Main content */}
+      <main className="flex-1 min-w-0">{children}</main>
+    </div>
+
+    {/* ChatWidget fixed bottom-right */}
+    <div className="fixed bottom-4 right-4 z-50">
+      <ChatWidget />
+    </div>
+  </div>
+);
 };
 
 const AppRoutes = () => {
@@ -202,6 +210,14 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/chat"
+        element={
+          <ProtectedRoute>
+            <Chat />
+          </ProtectedRoute>
+        }
+      />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>
@@ -213,14 +229,16 @@ const App = () => (
     <Provider store={store}>
       <ThemeProvider>
         <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <ToastContainer position="top-right" autoClose={3000} />
-            <BrowserRouter>
-              <AppRoutes />
-            </BrowserRouter>
-          </TooltipProvider>
+          <ChatProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <ToastContainer position="top-right" autoClose={3000} />
+              <BrowserRouter>
+                <AppRoutes />
+              </BrowserRouter>
+            </TooltipProvider>
+          </ChatProvider>
         </AuthProvider>
       </ThemeProvider>
     </Provider>
