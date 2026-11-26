@@ -5,6 +5,8 @@ import "react-toastify/dist/ReactToastify.css";
 import { useAuth } from "../contexts/AuthContext";
 import "./Attendance.css";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 const getLastMonth = () => {
   const date = new Date();
   date.setDate(1);
@@ -69,7 +71,7 @@ const Attendance = () => {
 
     try {
       const res = await axios.post(
-        "http://localhost:8000/api/attendance/upload-attendance",
+        `${API_URL}/api/attendance/upload-attendance`,
         formData,
         { headers: { Authorization: `Bearer ${token}` } },
       );
@@ -101,7 +103,7 @@ const Attendance = () => {
 
     try {
       const res = await axios.get(
-        "http://localhost:8000/api/employees",
+        `${API_URL}/api/employees`,
         config,
       );
       setEmployees(res.data?.data || []);
@@ -130,7 +132,7 @@ const Attendance = () => {
         params.month = selectedMonth || getLastMonth();
 
         res = await axios.get(
-          "http://localhost:8000/api/attendance/datefilter",
+          `${API_URL}/api/attendance/datefilter`,
           {
             params,
             ...config,
@@ -138,7 +140,7 @@ const Attendance = () => {
         );
       } else {
         const params = { month: selectedMonth || getLastMonth() };
-        res = await axios.get("http://localhost:8000/api/attendance/me", {
+        res = await axios.get(`${API_URL}/api/attendance/me`, {
           params,
           ...config,
         });
@@ -161,7 +163,6 @@ const Attendance = () => {
   // Initial Load
   useEffect(() => {
     fetchEmployees();
-    fetchAttendance();
   }, [isHR]);
 
   // Re-fetch when filters change
@@ -285,7 +286,7 @@ const Attendance = () => {
     setStatusUpdatingId(item._id || `${employeeId}-${date}`);
     try {
       await axios.post(
-        "http://localhost:8000/api/attendance/upsert",
+        `${API_URL}/api/attendance/upsert`,
         {
           employeeId,
           date,

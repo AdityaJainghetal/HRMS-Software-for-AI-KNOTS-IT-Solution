@@ -138,6 +138,17 @@ export const register = async (req, res) => {
 
     const { accessToken, refreshToken } = createTokens(user);
     await saveRefreshSession(user._id, refreshToken);
+    const loginTime = new Date();
+    await Employee.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          lastLogin: loginTime,
+          currentLoginAt: loginTime,
+          lastSessionDurationMs: 0,
+        },
+      },
+    );
     setRefreshCookie(res, refreshToken);
 
     transporter.sendMail(
@@ -206,6 +217,17 @@ export const login = async (req, res) => {
 
     const { accessToken, refreshToken } = createTokens(user);
     await saveRefreshSession(user._id, refreshToken);
+    const loginTime = new Date();
+    await Employee.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          lastLogin: loginTime,
+          currentLoginAt: loginTime,
+          lastSessionDurationMs: 0,
+        },
+      },
+    );
     setRefreshCookie(res, refreshToken);
 
     transporter.sendMail(
@@ -355,6 +377,29 @@ export const logout = async (req, res) => {
             },
           },
         );
+        const user = await Employee.findById(decoded._id).select("+refreshSessions");
+        if (user) {
+          const now = new Date();
+          const hasActiveSession = (user.refreshSessions || []).some(
+            (session) => new Date(session.expiresAt) > now,
+          );
+          if (!hasActiveSession) {
+            const loginAt = user.currentLoginAt || user.lastLogin;
+            const duration = loginAt
+              ? Math.max(0, now.getTime() - new Date(loginAt).getTime())
+              : 0;
+            await Employee.updateOne(
+              { _id: user._id },
+              {
+                $set: {
+                  lastLogout: now,
+                  lastSessionDurationMs: duration,
+                  currentLoginAt: null,
+                },
+              },
+            );
+          }
+        }
       } catch (error) {
         if (
           error.name !== "JsonWebTokenError" &&

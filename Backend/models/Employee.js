@@ -14,6 +14,16 @@ const EmployeeSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    lastLogout: {
+      type: Date,
+    },
+    currentLoginAt: {
+      type: Date,
+    },
+    lastSessionDurationMs: {
+      type: Number,
+      default: 0,
+    },
     refreshSessions: {
       type: [
         {

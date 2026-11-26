@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -9,15 +9,19 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Textarea } from '../components/ui/textarea';
-import axios from 'axios';
+import {
+  useGetEmployeesQuery,
+  useGetDepartmentsQuery,
+  useCreateDepartmentMutation,
+  useUpdateDepartmentMutation,
+  useDeleteDepartmentMutation,
+} from '../store/apiSlice';
 import {
   Building2, Plus, Edit, Trash2, Users, DollarSign, 
   TrendingUp, Search, MoreHorizontal,
   IndianRupee
 } from 'lucide-react';
 import { toast } from 'react-toastify';
-const API_URL = import.meta.env.VITE_API_URL;
-
 const Departments = () => {
   const wrapperStyle = {
     paddingBottom: "20px",
@@ -37,12 +41,15 @@ const Departments = () => {
   };
 
   const { isHR } = useAuth();
-  const [employees, setEmployees] = useState([]);
+  const { data: employees = [] } = useGetEmployeesQuery();
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState(null);
 
-  const [departments, setDepartments] = useState([]);
+  const { data: departmentData = [] } = useGetDepartmentsQuery();
+  const [createDepartment] = useCreateDepartmentMutation();
+  const [updateDepartment] = useUpdateDepartmentMutation();
+  const [deleteDepartment] = useDeleteDepartmentMutation();
 
   const [newDepartment, setNewDepartment] = useState({
     name: '',
@@ -51,9 +58,6 @@ const Departments = () => {
     location: '',
     budget: ''
   });
-
-  const API_BASE = API_URL;
-  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
 
   // Normalize/enrich a department object coming from the API so the UI can always
   // display a head name/avatar regardless of whether the API returned an id or
@@ -82,40 +86,7 @@ const Departments = () => {
     };
   };
 
-  const fetchDepartments = async () => {
-    try {
-      const res = await axios.get(`${API_BASE}/api/departments`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const apiDepts = res.data?.data || [];
-      setDepartments(apiDepts.map(enrichDepartment));
-    } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.message || 'Failed to load departments');
-    }
-  };
-
-  const fetchEmployees = async () => {
-    try {
-      const res = await axios.get(`${API_BASE}/api/employees`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      // normalize to { id, name, profileImage } so Select values work consistently
-      const items = (res.data?.data || []).map(e => ({ id: e._id || e.id, name: e.name, profileImage: e.profileImage }));
-      setEmployees(items);
-      // re-enrich any already-fetched departments so head names resolve once employees are loaded
-      setDepartments(prev => prev.map(enrichDepartment));
-    } catch (err) {
-      console.error('failed to load employees', err);
-    }
-  };
-
-  useEffect(() => {
-    if (!token) return;
-    fetchDepartments();
-    fetchEmployees();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const departments = departmentData.map(enrichDepartment);
 
   const filteredDepartments = departments.filter(dept =>
     dept.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -135,12 +106,7 @@ const Departments = () => {
         head: newDepartment.head || null,
         budget: newDepartment.budget ? Number(newDepartment.budget) : 0,
       };
-      const res = await axios.post(`${API_BASE}/api/departments`, payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-  const created = res.data?.data;
-      if (!created) throw new Error('No department returned');
-  setDepartments(prev => [...prev, enrichDepartment(created)]);
+      await createDepartment(payload).unwrap();
       setNewDepartment({ name: '', description: '', head: '', location: '', budget: '' });
       setShowAddDialog(false);
       toast.success('Department added successfully!');
@@ -161,12 +127,10 @@ const Departments = () => {
         head: editingDepartment.head || null,
         budget: editingDepartment.budget ? Number(editingDepartment.budget) : 0,
       };
-      const res = await axios.put(`${API_BASE}/api/departments/${editingDepartment.id}`, payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-  const updated = res.data?.data;
-      if (!updated) throw new Error('No department returned');
-  setDepartments(prev => prev.map(d => d.id === updated.id ? enrichDepartment(updated) : d));
+      await updateDepartment({
+        id: editingDepartment.id,
+        body: payload,
+      }).unwrap();
       setEditingDepartment(null);
       toast.success('Department updated successfully!');
     } catch (err) {
@@ -178,10 +142,7 @@ const Departments = () => {
   const handleDeleteDepartment = async (id) => {
     if (!window.confirm('Are you sure you want to delete this department?')) return;
     try {
-      await axios.delete(`${API_BASE}/api/departments/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setDepartments(prev => prev.filter(dept => dept.id !== id));
+      await deleteDepartment(id).unwrap();
       toast.success('Department deleted successfully!');
     } catch (err) {
       console.error(err);

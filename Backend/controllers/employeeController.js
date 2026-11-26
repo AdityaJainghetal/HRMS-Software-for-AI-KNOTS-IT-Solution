@@ -427,44 +427,113 @@ export const grantLeave = async (req, res) => {
 };
 export const getAllEmployees = async (req, res) => {
   try {
-    const employees = await Employee.find().populate({
-      path: "department",
-      select: "name",
-    });
+    const employees = await Employee.find()
+      .select("+refreshSessions")
+      .populate({
+        path: "department",
+        select: "name",
+      });
     if (!employees || employees.length === 0) {
       return res.status(404).json({
         status: false,
         message: "No employees found",
       });
     }
-    // Refresh leave balance and leave status before returning employees
-    const mapped = await Promise.all(
-      employees.map(async (emp) => {
-        await refreshEmployeeStatus(emp);
-        await refreshEmployeeLeaveBalance(emp);
-        return {
-          id: emp._id,
-          name: emp.name,
-          email: emp.email,
-          phone: emp.phone,
-          gender: emp.gender === "F" ? "female" : "male",
-          department: emp.department?.name || "",
-          departmentId: emp.department?._id || null,
-          position: emp.position,
-          salary: emp.salary,
-          leaveBalance: emp.leaveBalance,
-          joinDate: emp.startDate
-            ? emp.startDate.toISOString().split("T")[0]
-            : "",
-          status: emp.status,
-          avatar:
-            emp.profileImage ||
-            `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.name)}&background=3b82f6&color=fff`,
-          address: emp.address,
-          employeeId: emp.employeeId || "",
-        };
-      }),
-    );
+    const employeeIds = employees.map((employee) => employee._id);
+    const leaves = await Leave.find({ employee: { $in: employeeIds } })
+      .select(
+        "employee type originalType startDate endDate days status",
+      )
+      .lean();
+    const leavesByEmployee = new Map();
+    for (const leave of leaves) {
+      const employeeKey = String(leave.employee);
+      const employeeLeaves = leavesByEmployee.get(employeeKey) || [];
+      employeeLeaves.push(leave);
+      leavesByEmployee.set(employeeKey, employeeLeaves);
+    }
+
+    const now = new Date();
+    const endOfDay = new Date(now);
+    endOfDay.setHours(23, 59, 59, 999);
+    const startOfDay = new Date(now);
+    startOfDay.setHours(0, 0, 0, 0);
+    const updates = [];
+
+    const mapped = employees.map((emp) => {
+      const employeeLeaves = leavesByEmployee.get(String(emp._id)) || [];
+      const leaveSummary = getLeaveBalanceSummary(emp, employeeLeaves, now);
+      const calculatedBalance = Math.max(
+        leaveSummary.monthly.available +
+          leaveSummary.menstrual.available +
+          Number(emp.leaveAdjustment || 0),
+        0,
+      );
+      const activeLeave = employeeLeaves.some(
+        (leave) =>
+          leave.status === "approved" &&
+          new Date(leave.startDate) <= endOfDay &&
+          new Date(leave.endDate) >= startOfDay,
+      );
+      const calculatedStatus =
+        emp.status === "terminated" || emp.status === "inactive"
+          ? emp.status
+          : activeLeave
+            ? "on_leave"
+            : "active";
+
+      if (
+        emp.leaveBalance !== calculatedBalance ||
+        emp.status !== calculatedStatus
+      ) {
+        emp.leaveBalance = calculatedBalance;
+        emp.status = calculatedStatus;
+        updates.push({
+          updateOne: {
+            filter: { _id: emp._id },
+            update: {
+              $set: {
+                leaveBalance: calculatedBalance,
+                status: calculatedStatus,
+              },
+            },
+          },
+        });
+      }
+
+      return {
+        id: emp._id,
+        name: emp.name,
+        email: emp.email,
+        phone: emp.phone,
+        gender: emp.gender === "F" ? "female" : "male",
+        department: emp.department?.name || "",
+        departmentId: emp.department?._id || null,
+        position: emp.position,
+        salary: emp.salary,
+        leaveBalance: calculatedBalance,
+        joinDate: emp.startDate
+          ? emp.startDate.toISOString().split("T")[0]
+          : "",
+        status: calculatedStatus,
+        avatar:
+          emp.profileImage ||
+          `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.name)}&background=3b82f6&color=fff`,
+        address: emp.address,
+        employeeId: emp.employeeId || "",
+        lastLogin: emp.lastLogin || null,
+        lastLogout: emp.lastLogout || null,
+        lastSessionDurationMs: emp.lastSessionDurationMs || 0,
+        isOnline: (emp.refreshSessions || []).some(
+          (session) => new Date(session.expiresAt) > now,
+        ),
+        currentLoginAt: emp.currentLoginAt || null,
+      };
+    });
+
+    if (updates.length > 0) {
+      await Employee.bulkWrite(updates);
+    }
 
     res.status(200).json({
       status: true,
@@ -482,10 +551,12 @@ export const getAllEmployees = async (req, res) => {
 export const getEmployeeById = async (req, res) => {
   const { id } = req.params;
   try {
-    const emp = await Employee.findById(id).populate({
-      path: "department",
-      select: "name",
-    });
+    const emp = await Employee.findById(id)
+      .select("+refreshSessions")
+      .populate({
+        path: "department",
+        select: "name",
+      });
     if (!emp) {
       return res.status(404).json({
         status: false,
@@ -521,6 +592,13 @@ export const getEmployeeById = async (req, res) => {
         `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.name)}&background=3b82f6&color=fff`,
       address: emp.address,
       employeeId: emp.employeeId || "",
+      lastLogin: emp.lastLogin || null,
+      lastLogout: emp.lastLogout || null,
+      lastSessionDurationMs: emp.lastSessionDurationMs || 0,
+      isOnline: (emp.refreshSessions || []).some(
+        (session) => new Date(session.expiresAt) > new Date(),
+      ),
+      currentLoginAt: emp.currentLoginAt || null,
     };
     res.status(200).json({
       status: true,

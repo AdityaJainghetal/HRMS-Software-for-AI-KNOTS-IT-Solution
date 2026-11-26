@@ -66,4 +66,6 @@ const leaveSchema = new mongoose.Schema(
   },
 );
 
+leaveSchema.index({ employee: 1, status: 1, startDate: 1, endDate: 1 });
+
 export default mongoose.model("Leave", leaveSchema);

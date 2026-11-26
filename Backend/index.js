@@ -18,6 +18,7 @@ import eventRoutes from "./routes/event.js";
 import goalRoutes from "./routes/goal.js";
 import attendanceRoutes from "./routes/attendance.js";
 import activityRoutes from "./routes/activity.js";
+import contactRoutes from "./routes/contact.js";
 import leaveRoutes from "./routes/leave.js";
 import payrollRoutes from "./routes/payroll.js";
 import payslipRoutes from "./routes/payslip.js";
@@ -36,8 +37,7 @@ const io = new Server(httpServer, {
   cors: { origin: true, credentials: true },
 });
 attachChatSocket(io);
-connectDB();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 8000;
 
 // Middlewares
 app.use(express.json());
@@ -68,6 +68,10 @@ app.use(morgan("dev"));
 app.use(helmet());
 app.use(cookieParser());
 
+app.get("/health", (_req, res) => {
+  res.status(200).json({ status: true, service: "hrms-backend" });
+});
+
 // Route middlewares
 app.use("/api/auth", authRoutes);
 app.use("/api/employees", employeeRoutes);
@@ -76,6 +80,7 @@ app.use("/api/events", eventRoutes);
 app.use("/api/goals", goalRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/activities", activityRoutes);
+app.use("/api/contact", contactRoutes);
 
 app.use("/api/leave", leaveRoutes);
 app.use("/api/payslips", payslipRoutes);
@@ -86,6 +91,24 @@ app.use("/api/devices", deviceRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/chat", chatRoutes);
 
-httpServer.listen(PORT, () => {
+const startServer = async () => {
+  await connectDB();
+  await new Promise((resolve, reject) => {
+    const handleError = (error) => {
+      httpServer.off("error", handleError);
+      reject(error);
+    };
+
+    httpServer.once("error", handleError);
+    httpServer.listen(PORT, () => {
+      httpServer.off("error", handleError);
+      resolve();
+    });
+  });
   console.log(`Server is running on port ${PORT}`);
+};
+
+startServer().catch((error) => {
+  console.error("Server startup failed:", error);
+  process.exit(1);
 });

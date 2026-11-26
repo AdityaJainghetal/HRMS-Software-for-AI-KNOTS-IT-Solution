@@ -43,6 +43,14 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import {
+  useGetEmployeesQuery,
+  useGetDepartmentsQuery,
+  useGetLeavesQuery,
+  useCreateEmployeeMutation,
+  useUpdateEmployeeMutation,
+  useDeleteEmployeeMutation,
+} from "../store/apiSlice";
 const API_URL = import.meta.env.VITE_API_URL;
 
 const Employees = () => {
@@ -61,10 +69,15 @@ const Employees = () => {
 
   const [activeSection, setActiveSection] = useState(null);
 
-  const [employees, setEmployees] = useState([]);
-  const [employeesLoading, setEmployeesLoading] = useState(true);
-  const [leaves, setLeaves] = useState([]);
-  const [departments, setDepartments] = useState([]);
+  const {
+    data: employees = [],
+    isFetching: employeesLoading,
+  } = useGetEmployeesQuery();
+  const { data: departments = [] } = useGetDepartmentsQuery();
+  const { data: leaves = [] } = useGetLeavesQuery();
+  const [createEmployee] = useCreateEmployeeMutation();
+  const [updateEmployee] = useUpdateEmployeeMutation();
+  const [deleteEmployee] = useDeleteEmployeeMutation();
 
   const departmentNames = useMemo(
     () => departments.map((d) => d.name),
@@ -82,45 +95,6 @@ const Employees = () => {
   const API_BASE = API_URL;
   const token =
     typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
-
-  const fetchEmployees = async () => {
-    try {
-      setEmployeesLoading(true);
-      const res = await axios.get(`${API_BASE}/api/employees`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setEmployees(Array.isArray(res.data?.data) ? res.data.data : []);
-    } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.message || "Failed to load employees");
-    } finally {
-      setEmployeesLoading(false);
-    }
-  };
-
-  const fetchDepartments = async () => {
-    try {
-      const res = await axios.get(`${API_BASE}/api/departments`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setDepartments(Array.isArray(res.data?.data) ? res.data.data : []);
-    } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.message || "Failed to load departments");
-    }
-  };
-
-  const fetchLeaves = async () => {
-    try {
-      const res = await axios.get(`${API_BASE}/api/leave`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setLeaves(res.data?.data || []);
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to load leave requests");
-    }
-  };
 
   const [newEmployee, setNewEmployee] = useState({
     name: "",
@@ -151,6 +125,17 @@ const Employees = () => {
 
     return matchesSearch && matchesDepartment && matchesStatus;
   });
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const EMPLOYEES_PAGE_SIZE = 10;
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredEmployees.length / EMPLOYEES_PAGE_SIZE),
+  );
+  const paginatedEmployees = filteredEmployees.slice(
+    (currentPage - 1) * EMPLOYEES_PAGE_SIZE,
+    currentPage * EMPLOYEES_PAGE_SIZE,
+  );
 
   const handleStatClick = (type) => {
     if (type === "total") {
@@ -237,14 +222,7 @@ const Employees = () => {
         gender: newEmployee.gender,
         status: "active",
       };
-      const res = await axios.post(
-        `${API_BASE}/api/employees/create`,
-        payload,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-      if (res.data?.data) setEmployees((prev) => [...prev, res.data.data]);
+      await createEmployee(payload).unwrap();
 
       setNewEmployee({
         name: "",
@@ -298,19 +276,10 @@ const Employees = () => {
         joinDate: editingEmployee.joinDate,
         gender: editingEmployee.gender,
       };
-      const res = await axios.put(
-        `${API_BASE}/api/employees/edit/${editingEmployee.id}`,
-        payload,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-      const updated = res.data?.data;
-      if (updated) {
-        setEmployees((prev) =>
-          prev.map((emp) => (emp.id === updated.id ? updated : emp)),
-        );
-      }
+      await updateEmployee({
+        id: editingEmployee.id,
+        body: payload,
+      }).unwrap();
       setEditingEmployee(null);
       toast.success("Employee updated successfully!");
     } catch (err) {
@@ -323,10 +292,7 @@ const Employees = () => {
     if (!window.confirm("Are you sure you want to delete this employee?"))
       return;
     try {
-      await axios.delete(`${API_BASE}/api/employees/delete/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setEmployees((prev) => prev.filter((emp) => emp.id !== id));
+      await deleteEmployee(id).unwrap();
       toast.success("Employee removed successfully!");
     } catch (err) {
       console.error(err);
@@ -358,6 +324,32 @@ const Employees = () => {
     fetchEmployeeDetails(employee.id);
   };
 
+  const formatDateTime = (value) => {
+    if (!value) return "—";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "—";
+    return date.toLocaleString();
+  };
+
+  const formatDuration = (milliseconds) => {
+    const totalSeconds = Math.max(0, Math.floor((milliseconds || 0) / 1000));
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
+  };
+
+  const getSessionDuration = (employee) => {
+    if (employee?.isOnline && employee?.currentLoginAt) {
+      return (
+        new Date().getTime() - new Date(employee.currentLoginAt).getTime()
+      );
+    }
+    return employee?.lastSessionDurationMs || 0;
+  };
+
   const getStatusBadge = (status) => {
     switch (status) {
       case "active":
@@ -372,11 +364,14 @@ const Employees = () => {
   };
 
   useEffect(() => {
-    if (!token) return;
-    fetchEmployees();
-    fetchDepartments();
-    fetchLeaves();
-  }, []);
+    setCurrentPage(1);
+  }, [searchTerm, filterDepartment, statusFilter]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   if (!isHR) {
     return (
@@ -836,7 +831,7 @@ const Employees = () => {
               </div>
             ) : viewMode === "grid" ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-                {filteredEmployees.map((employee) => (
+                {paginatedEmployees.map((employee) => (
                   <Card
                     key={employee.id}
                     className="cursor-pointer hover:shadow-lg"
@@ -872,12 +867,16 @@ const Employees = () => {
                     <TableHead>Department</TableHead>
                     <TableHead>Position</TableHead>
                     <TableHead>Salary</TableHead>
+                    <TableHead>Login Status</TableHead>
+                    <TableHead>Last Login</TableHead>
+                    <TableHead>Last Logout</TableHead>
+                    <TableHead>Session Time</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredEmployees.map((employee) => (
+                  {paginatedEmployees.map((employee) => (
                     <TableRow
                       key={employee.id}
                       className="cursor-pointer hover:bg-muted"
@@ -904,6 +903,14 @@ const Employees = () => {
                       <TableCell>
                         ₹{(employee.salary || 0).toLocaleString()}
                       </TableCell>
+                      <TableCell>
+                        <Badge variant={employee.isOnline ? "default" : "outline"}>
+                          {employee.isOnline ? "Online" : "Offline"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{formatDateTime(employee.lastLogin)}</TableCell>
+                      <TableCell>{formatDateTime(employee.lastLogout)}</TableCell>
+                      <TableCell>{formatDuration(getSessionDuration(employee))}</TableCell>
                       <TableCell>{getStatusBadge(employee.status)}</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
@@ -934,6 +941,45 @@ const Employees = () => {
                   ))}
                 </TableBody>
               </Table>
+            )}
+            {!employeesLoading && filteredEmployees.length > 0 && (
+              <div className="flex flex-col gap-3 border-t px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-sm text-muted-foreground">
+                  Showing {(currentPage - 1) * EMPLOYEES_PAGE_SIZE + 1} -{" "}
+                  {Math.min(
+                    currentPage * EMPLOYEES_PAGE_SIZE,
+                    filteredEmployees.length,
+                  )}{" "}
+                  of {filteredEmployees.length}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage === 1}
+                    onClick={() =>
+                      setCurrentPage((page) => Math.max(1, page - 1))
+                    }
+                  >
+                    Previous
+                  </Button>
+                  <span className="px-2 text-sm">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage === totalPages}
+                    onClick={() =>
+                      setCurrentPage((page) =>
+                        Math.min(totalPages, page + 1),
+                      )
+                    }
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -1004,6 +1050,26 @@ const Employees = () => {
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">Join Date</p>
                   <p>{selectedEmployee.joinDate || "—"}</p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Login Status</p>
+                  <Badge variant={selectedEmployee.isOnline ? "default" : "outline"}>
+                    {selectedEmployee.isOnline ? "Online" : "Offline"}
+                  </Badge>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Last Login</p>
+                  <p>{formatDateTime(selectedEmployee.lastLogin)}</p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Last Logout</p>
+                  <p>{formatDateTime(selectedEmployee.lastLogout)}</p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    {selectedEmployee.isOnline ? "Current Session" : "Last Session Time"}
+                  </p>
+                  <p>{formatDuration(getSessionDuration(selectedEmployee))}</p>
                 </div>
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">Date of Birth</p>
